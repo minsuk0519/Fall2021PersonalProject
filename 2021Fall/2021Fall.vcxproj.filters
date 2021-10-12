@@ -5,15 +5,42 @@
     <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Graphic.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\ShaderModule.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
       <UniqueIdentifier>{572e872f-964a-4607-8de7-227785b74a96}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Graphic">
+      <UniqueIdentifier>{ac35b63d-6eb4-460e-8bbf-49d496743183}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Application.hpp">
       <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\helper.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\System.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Graphic.hpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\ShaderModule.hpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp">
+      <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

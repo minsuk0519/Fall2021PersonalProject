@@ -8,6 +8,7 @@ namespace Helper
 {
 	static std::vector<char> readFile(const std::string filename)
 	{
+		//ate : start reading at the end of the file
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
 		
 		if (!file.is_open())
