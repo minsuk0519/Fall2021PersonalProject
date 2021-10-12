@@ -19,6 +19,13 @@ struct QueueFamilyIndices
 	bool isComplete();
 };
 
+struct SwapChainSupportDetails
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
+};
+
 class Application
 {
 public:
@@ -40,7 +47,14 @@ private:
 
 	bool isDeviceSuitable(VkPhysicalDevice device);
 
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 private:
 	VkInstance vulkanInstance;
 	VkDebugUtilsMessengerEXT vulkanDebugMessenger;
@@ -51,6 +65,14 @@ private:
 	VkQueue vulkanPresentQueue;
 
 	VkSurfaceKHR vulkanSurface;
+	VkSwapchainKHR vulkanSwapChain;
+
+	std::vector<VkImage> vulkanSwapChainImages;
+
+	VkFormat vulkanSwapChainImageFormat;
+	VkExtent2D vulkanSwapChainExtent;
+
+	std::vector<VkImageView> vulkanSwapChainImageViews;
 
 	GLFWwindow* window = nullptr;
 
