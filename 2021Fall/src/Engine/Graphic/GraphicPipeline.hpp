@@ -1,5 +1,10 @@
 #pragma once
-#include "ShaderModule.hpp"
+
+//3rd party library
+#include <vulkan/vulkan.h>
+
+//standard library
+#include <vector>
 
 class GraphicPipeline
 {
@@ -9,8 +14,8 @@ public:
 	void init();
 	void close();
 private:
-	ShaderModule* vertShaderModule = nullptr;
-	ShaderModule* fragShaderModule = nullptr;
 
 	VkDevice vulkanDevice;
+
+	VkShaderModule CreatevulkanShaderModule(const std::vector<char>& code);
 };

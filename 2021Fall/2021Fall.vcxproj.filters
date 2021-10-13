@@ -8,9 +8,6 @@
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\Graphic\ShaderModule.cpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClCompile>
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
@@ -34,9 +31,6 @@
       <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\Graphic\ShaderModule.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp">
