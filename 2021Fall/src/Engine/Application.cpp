@@ -12,6 +12,7 @@
 #include <algorithm>
 
 #include "Application.hpp"
+#include "settings.hpp"
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -35,7 +36,7 @@ void Application::init()
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    window = glfwCreateWindow(windowWidth, windowHeight, "Vulkan window", nullptr, nullptr);
+    window = glfwCreateWindow(Settings::windowWidth, Settings::windowHeight, "Vulkan window", nullptr, nullptr);
 
     if (window == nullptr)
     {
@@ -208,6 +209,12 @@ void Application::initVulkan()
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
         VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
     
+        if (extent.width != Settings::windowWidth ||
+            extent.height != Settings::windowHeight)
+        {
+            throw std::runtime_error("Error : window size is incorrect!");
+        }
+
         uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
 
         if (swapChainSupport.capabilities.maxImageCount > 0 && 

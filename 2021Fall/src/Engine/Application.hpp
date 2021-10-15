@@ -75,10 +75,6 @@ private:
 	std::vector<VkImageView> vulkanSwapChainImageViews;
 
 	GLFWwindow* window = nullptr;
-
-private:
-	unsigned int windowWidth = 1280;
-	unsigned int windowHeight = 720;
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 

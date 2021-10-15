@@ -14,8 +14,9 @@ public:
 	void init();
 	void close();
 private:
-
 	VkDevice vulkanDevice;
+
+	VkPipelineLayout pipelineLayout;
 
 	VkShaderModule CreatevulkanShaderModule(const std::vector<char>& code);
 };

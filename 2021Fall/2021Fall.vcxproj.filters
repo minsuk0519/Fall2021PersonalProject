@@ -36,5 +36,8 @@
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\settings.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
