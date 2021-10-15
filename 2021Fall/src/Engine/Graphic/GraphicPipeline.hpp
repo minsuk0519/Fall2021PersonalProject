@@ -11,12 +11,15 @@ class GraphicPipeline
 public:
 	GraphicPipeline(VkDevice device);
 
-	void init();
+	void init(VkRenderPass renderpass);
 	void close();
+
+	VkPipeline GetPipeline() const;
 private:
 	VkDevice vulkanDevice;
 
-	VkPipelineLayout pipelineLayout;
+	VkPipelineLayout vulkanpipelineLayout;
+	VkPipeline vulkanPipeline;
 
 	VkShaderModule CreatevulkanShaderModule(const std::vector<char>& code);
 };

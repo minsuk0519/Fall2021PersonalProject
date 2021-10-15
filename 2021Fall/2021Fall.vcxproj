@@ -23,6 +23,7 @@
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp" />
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp" />
+    <ClCompile Include="src\Engine\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Application.hpp" />

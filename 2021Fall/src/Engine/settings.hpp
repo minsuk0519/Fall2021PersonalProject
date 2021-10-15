@@ -1,7 +1,17 @@
 #pragma once
 
-namespace Settings
+//3rd party library
+#include <vulkan/vulkan.h>
+
+struct Settings
 {
-	static unsigned int windowWidth = 1280;
-	static unsigned int windowHeight = 720;
-}
+public:
+	static unsigned int windowWidth;
+	static unsigned int windowHeight;
+};
+
+class Vulkan
+{
+public:
+};
+

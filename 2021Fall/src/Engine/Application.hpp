@@ -10,6 +10,9 @@
 //standard library
 #include <vector>
 #include <optional>
+#include <concepts>
+
+class System;
 
 struct QueueFamilyIndices
 {
@@ -30,10 +33,22 @@ class Application
 {
 public:
 	void init();
+	void postinit();
 	void update();
 	void close();
 
+	template <class T> requires std::derived_from<T, System>
+	void AddSystem()
+	{
+		engineSystems.push_back(new T(vulkanDevice, this));
+	}
+
+	//
+	VkFormat GetSwapChainImageFormat() const;
+	const std::vector<VkImageView>& GetSwapChainImageViews() const;
+	VkCommandPool GetCommandPool() const;
 private:
+	//method
 	void initVulkan();
 	void setVulkandebug();
 	
@@ -65,16 +80,22 @@ private:
 	VkQueue vulkanPresentQueue;
 
 	VkSurfaceKHR vulkanSurface;
+
 	VkSwapchainKHR vulkanSwapChain;
 
 	std::vector<VkImage> vulkanSwapChainImages;
 
-	VkFormat vulkanSwapChainImageFormat;
 	VkExtent2D vulkanSwapChainExtent;
 
 	std::vector<VkImageView> vulkanSwapChainImageViews;
 
+	VkFormat vulkanSwapChainImageFormat;
+
+	VkCommandPool vulkanCommandPool;
+
 	GLFWwindow* window = nullptr;
+
+	std::vector<System*> engineSystems;
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 

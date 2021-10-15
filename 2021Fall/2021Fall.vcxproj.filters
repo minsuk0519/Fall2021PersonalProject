@@ -11,6 +11,9 @@
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\settings.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">

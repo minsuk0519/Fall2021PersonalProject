@@ -4,7 +4,7 @@
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
-void GraphicPipeline::init()
+void GraphicPipeline::init(VkRenderPass renderpass)
 {
 	VkShaderModule vertShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglevert.spv"));
 	VkShaderModule fragShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglefrag.spv"));
@@ -116,9 +116,34 @@ void GraphicPipeline::init()
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-	if (vkCreatePipelineLayout(vulkanDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(vulkanDevice, &pipelineLayoutInfo, nullptr, &vulkanpipelineLayout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create pipeline layout!");
+	}
+
+	VkGraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pDynamicState = nullptr;
+
+	pipelineInfo.layout = vulkanpipelineLayout;
+
+	pipelineInfo.renderPass = renderpass;
+	pipelineInfo.subpass = 0;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+	if (vkCreateGraphicsPipelines(vulkanDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+		&vulkanPipeline) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 
 	vkDestroyShaderModule(vulkanDevice, vertShaderModule, nullptr);
@@ -127,7 +152,12 @@ void GraphicPipeline::init()
 
 void GraphicPipeline::close()
 {
-	vkDestroyPipelineLayout(vulkanDevice, pipelineLayout, nullptr);
+	vkDestroyPipelineLayout(vulkanDevice, vulkanpipelineLayout, nullptr);
+}
+
+VkPipeline GraphicPipeline::GetPipeline() const
+{
+	return vulkanPipeline;
 }
 
 VkShaderModule GraphicPipeline::CreatevulkanShaderModule(const std::vector<char>& code)

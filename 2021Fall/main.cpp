@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "Engine/Application.hpp"
+#include "Engine/Graphic/Graphic.hpp"
 
 int main() 
 {
@@ -9,6 +10,10 @@ int main()
 
     try {
         app.init();
+
+        app.AddSystem<Graphic>();
+
+        app.postinit();
         
         app.update();
     } catch (const std::exception& e) {

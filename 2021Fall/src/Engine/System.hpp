@@ -2,10 +2,12 @@
 
 #include <vulkan/vulkan.h>
 
+class Application;
+
 class System
 {
 public:
-	System(VkDevice device) : vulkanDevice(device) {}
+	System(VkDevice device, Application* app) : vulkanDevice(device), application(app) {}
 
 	virtual void init() = 0;
 	virtual void update(float dt) = 0;
@@ -13,4 +15,6 @@ public:
 
 protected:
 	VkDevice vulkanDevice = nullptr;
+
+	Application* application = nullptr;
 };
