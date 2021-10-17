@@ -313,10 +313,10 @@ std::vector<const char*> Application::getRequiredExtensions()
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
+    VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void* pUserData) 
+    void* /*pUserData*/)
 {
 
     std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;

@@ -45,7 +45,7 @@ void Graphic::init()
     }
 }
 
-void Graphic::update(float dt)
+void Graphic::update(float /*dt*/)
 {
     vkWaitForFences(vulkanDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
