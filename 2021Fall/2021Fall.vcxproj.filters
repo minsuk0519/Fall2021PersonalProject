@@ -14,6 +14,9 @@
     <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\VertexInfo.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -41,6 +44,9 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Application.hpp">
       <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\VertexInfo.hpp">
+      <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

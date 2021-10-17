@@ -1,6 +1,7 @@
 #include "Graphic.hpp"
 #include "Engine/settings.hpp"
 #include "Engine/Application.hpp"
+#include "VertexInfo.hpp"
 
 //standard library
 #include <stdexcept>
@@ -14,6 +15,47 @@ Graphic::Graphic(VkDevice device, Application* app) : System(device, app) {}
 
 void Graphic::init()
 {
+    //create vertex buffer
+    {
+        std::vector<PosColorVertex> vert = {
+            {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 1.0f}},
+            {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}
+        };
+
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = sizeof(vert[0]) * vert.size();
+        bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(vulkanDevice, &bufferInfo, nullptr, &vulkanVertexBuffer) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(vulkanDevice, vulkanVertexBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(vulkanDevice, &allocInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(vulkanDevice, vulkanVertexBuffer, vertexBufferMemory, 0);
+
+        void* data;
+        vkMapMemory(vulkanDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
+        memcpy(data, vert.data(), static_cast<size_t>(bufferInfo.size));
+        vkUnmapMemory(vulkanDevice, vertexBufferMemory);
+    }
+
     SetupSwapChain();
 
     //create semaphore
@@ -121,6 +163,9 @@ void Graphic::update(float /*dt*/)
 
 void Graphic::close()
 {
+    vkDestroyBuffer(vulkanDevice, vulkanVertexBuffer, nullptr);
+    vkFreeMemory(vulkanDevice, vertexBufferMemory, nullptr);
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         vkDestroySemaphore(vulkanDevice, vulkanRenderFinishedSemaphores[i], nullptr);
@@ -293,6 +338,10 @@ void Graphic::SetupSwapChain()
             vkCmdBindPipeline(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());
 
+            VkBuffer vertexBuffers[] = { vulkanVertexBuffer };
+            VkDeviceSize offsets[] = { 0 };
+            vkCmdBindVertexBuffers(vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+
             vkCmdDraw(vulkanCommandBuffers[i], 3, 1, 0, 0);
 
             vkCmdEndRenderPass(vulkanCommandBuffers[i]);
@@ -338,4 +387,21 @@ void Graphic::RecreateSwapChain()
 
     CloseSwapChain();
     SetupSwapChain();
+}
+
+uint32_t Graphic::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(application->GetPhysicalDevice(), &memProperties);
+
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
+    {
+        if ((typeFilter & (1 << i)) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            return i;
+        }
+    }
+
+    throw std::runtime_error("failed to find suitable memory type");
 }

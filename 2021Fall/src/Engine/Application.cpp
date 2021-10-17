@@ -610,3 +610,8 @@ VkQueue Application::GetPresentQueue() const
 {
     return vulkanPresentQueue;
 }
+
+VkPhysicalDevice Application::GetPhysicalDevice() const
+{
+    return vulkanPhysicalDevice;
+}

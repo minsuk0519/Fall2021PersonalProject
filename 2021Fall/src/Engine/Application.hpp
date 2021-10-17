@@ -51,6 +51,7 @@ public:
 	VkCommandPool GetCommandPool() const;
 	VkQueue GetGraphicQueue() const;
 	VkQueue GetPresentQueue() const;
+	VkPhysicalDevice GetPhysicalDevice() const;
 	
 //member variables
 public:
