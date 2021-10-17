@@ -38,6 +38,8 @@ void Application::init()
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(Settings::windowWidth, Settings::windowHeight, "Vulkan window", nullptr, nullptr);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
     if (window == nullptr)
     {
@@ -45,7 +47,6 @@ void Application::init()
     }
 
     initVulkan();
-    setVulkandebug();
 }
 
 void Application::postinit()
@@ -61,12 +62,14 @@ void Application::update()
     while (!glfwWindowShouldClose(window)) 
     {
         glfwPollEvents();
+
+        for (auto sys : engineSystems)
+        {
+            sys->update(0.016f); //should be changed
+        }
     }
 
-    for (auto sys : engineSystems)
-    {
-        sys->update(0.016f); //should be changed
-    }
+    vkDeviceWaitIdle(vulkanDevice);
 }
 
 void Application::close()
@@ -94,7 +97,7 @@ void Application::initVulkan()
 
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "2021Fall";
+        appInfo.pApplicationName = "Minsuk API";
         appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Minsuk Engine";
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -130,16 +133,14 @@ void Application::initVulkan()
         }
     }
 
+    //set vulkan debug
+    setVulkandebug();
+
     //surface
     {
-        VkWin32SurfaceCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-        createInfo.hwnd = glfwGetWin32Window(window);
-        createInfo.hinstance = GetModuleHandle(nullptr);
-
-        if (vkCreateWin32SurfaceKHR(vulkanInstance, &createInfo, nullptr, &vulkanSurface) != VK_SUCCESS)
+        if (glfwCreateWindowSurface(vulkanInstance, window, nullptr, &vulkanSurface) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create window surface!");
+            throw std::runtime_error("failed to creaete window surface!");
         }
     }
 
@@ -193,8 +194,8 @@ void Application::initVulkan()
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
         deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -218,106 +219,6 @@ void Application::initVulkan()
 
         vkGetDeviceQueue(vulkanDevice, indices.graphicsFamily.value(), 0, &vulkanGraphicsQueue);
         vkGetDeviceQueue(vulkanDevice, indices.presentFamily.value(), 0, &vulkanPresentQueue);
-    }
-
-    //swap chain
-    {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(vulkanPhysicalDevice);
-
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
-
-        if (extent.width != Settings::windowWidth ||
-            extent.height != Settings::windowHeight)
-        {
-            throw std::runtime_error("Error : window size is incorrect!");
-        }
-
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-
-        if (swapChainSupport.capabilities.maxImageCount > 0 &&
-            imageCount > swapChainSupport.capabilities.maxImageCount)
-        {
-            imageCount = swapChainSupport.capabilities.maxImageCount;
-        }
-
-        VkSwapchainCreateInfoKHR createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = vulkanSurface;
-
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = extent;
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-        QueueFamilyIndices indices = findQueueFamilies(vulkanPhysicalDevice);
-        uint32_t queueFamilyIndices[] = {
-            indices.graphicsFamily.value(),
-            indices.presentFamily.value()
-        };
-
-        if (indices.graphicsFamily != indices.presentFamily)
-        {
-            createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-            createInfo.queueFamilyIndexCount = 2;
-            createInfo.pQueueFamilyIndices = queueFamilyIndices;
-        }
-        else
-        {
-            createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            createInfo.queueFamilyIndexCount = 0;
-            createInfo.pQueueFamilyIndices = nullptr;
-        }
-
-        createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = presentMode;
-        createInfo.clipped = VK_TRUE;
-
-        createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-        if (vkCreateSwapchainKHR(vulkanDevice, &createInfo, nullptr, &vulkanSwapChain) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create swap chain!");
-        }
-
-        vkGetSwapchainImagesKHR(vulkanDevice, vulkanSwapChain, &imageCount, nullptr);
-        vulkanSwapChainImages.resize(imageCount);
-        vkGetSwapchainImagesKHR(vulkanDevice, vulkanSwapChain, &imageCount, vulkanSwapChainImages.data());
-
-        vulkanSwapChainImageFormat = surfaceFormat.format;
-        vulkanSwapChainExtent = extent;
-    }
-
-    //image views
-    {
-        vulkanSwapChainImageViews.resize(vulkanSwapChainImages.size());
-
-        for (size_t i = 0; i < vulkanSwapChainImages.size(); i++)
-        {
-            VkImageViewCreateInfo createInfo{};
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = vulkanSwapChainImages[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = vulkanSwapChainImageFormat;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(vulkanDevice, &createInfo, nullptr, &vulkanSwapChainImageViews[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create image views!");
-            }
-        }
     }
 
     //command pool
@@ -352,13 +253,6 @@ void Application::setVulkandebug()
 void Application::closeVulkan()
 {
     vkDestroyCommandPool(vulkanDevice, vulkanCommandPool, nullptr);
-
-    for (auto imageView : vulkanSwapChainImageViews)
-    {
-        vkDestroyImageView(vulkanDevice, imageView, nullptr);
-    }
-
-    vkDestroySwapchainKHR(vulkanDevice, vulkanSwapChain, nullptr);
 
     vkDestroyDevice(vulkanDevice, nullptr);
 
@@ -457,12 +351,26 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
     }
 }
 
+void framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    Application* application = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    application->framebufferSizeUpdate = true;
+
+    Settings::windowWidth = width;
+    Settings::windowHeight = height;
+}
+
 void Application::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
+        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
 }
 
@@ -617,17 +525,87 @@ VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabil
     }
 }
 
-VkFormat Application::GetSwapChainImageFormat() const
+VkSwapchainKHR Application::CreateSwapChain(uint32_t& imageCount, VkFormat& swapChainImageFormat, VkExtent2D& swapChainExtent)
 {
-    return vulkanSwapChainImageFormat;
-}
+    VkSwapchainKHR swapChain;
 
-const std::vector<VkImageView>& Application::GetSwapChainImageViews() const
-{
-    return vulkanSwapChainImageViews;
+    SwapChainSupportDetails swapChainSupport = querySwapChainSupport(vulkanPhysicalDevice);
+
+    VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+    if (extent.width != Settings::windowWidth ||
+        extent.height != Settings::windowHeight)
+    {
+        throw std::runtime_error("Error : window size is incorrect!");
+    }
+
+    imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    if (swapChainSupport.capabilities.maxImageCount > 0 &&
+        imageCount > swapChainSupport.capabilities.maxImageCount)
+    {
+        imageCount = swapChainSupport.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = vulkanSurface;
+
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    QueueFamilyIndices indices = findQueueFamilies(vulkanPhysicalDevice);
+    uint32_t queueFamilyIndices[] = {
+        indices.graphicsFamily.value(),
+        indices.presentFamily.value()
+    };
+
+    if (indices.graphicsFamily != indices.presentFamily)
+    {
+        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+    }
+    else
+    {
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount = 0;
+        createInfo.pQueueFamilyIndices = nullptr;
+    }
+
+    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+
+    if (vkCreateSwapchainKHR(vulkanDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create swap chain!");
+    }
+
+    swapChainImageFormat = surfaceFormat.format;
+    swapChainExtent = extent;
+
+    return swapChain;
 }
 
 VkCommandPool Application::GetCommandPool() const
 {
     return vulkanCommandPool;
+}
+
+
+VkQueue Application::GetGraphicQueue() const
+{
+    return vulkanGraphicsQueue;
+}
+
+VkQueue Application::GetPresentQueue() const
+{
+    return vulkanPresentQueue;
 }

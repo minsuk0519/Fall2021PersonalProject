@@ -37,18 +37,27 @@ public:
 	void update();
 	void close();
 
+//template method
+public:
 	template <class T> requires std::derived_from<T, System>
 	void AddSystem()
 	{
 		engineSystems.push_back(new T(vulkanDevice, this));
 	}
 
-	//
-	VkFormat GetSwapChainImageFormat() const;
-	const std::vector<VkImageView>& GetSwapChainImageViews() const;
+//vulkan method
+public:
+	VkSwapchainKHR CreateSwapChain(uint32_t& imageCount, VkFormat& swapChainImageFormat, VkExtent2D& swapChainExtent);
 	VkCommandPool GetCommandPool() const;
+	VkQueue GetGraphicQueue() const;
+	VkQueue GetPresentQueue() const;
+	
+//member variables
+public:
+	bool framebufferSizeUpdate = false;
+
+//vulkan method
 private:
-	//method
 	void initVulkan();
 	void setVulkandebug();
 	
@@ -70,29 +79,20 @@ private:
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+//vulkan variables
 private:
 	VkInstance vulkanInstance;
 	VkDebugUtilsMessengerEXT vulkanDebugMessenger;
-
 	VkPhysicalDevice vulkanPhysicalDevice = VK_NULL_HANDLE;
 	VkDevice vulkanDevice;
 	VkQueue vulkanGraphicsQueue;
 	VkQueue vulkanPresentQueue;
-
 	VkSurfaceKHR vulkanSurface;
-
-	VkSwapchainKHR vulkanSwapChain;
-
-	std::vector<VkImage> vulkanSwapChainImages;
-
-	VkExtent2D vulkanSwapChainExtent;
-
-	std::vector<VkImageView> vulkanSwapChainImageViews;
-
-	VkFormat vulkanSwapChainImageFormat;
-
 	VkCommandPool vulkanCommandPool;
 
+//member variables
+private:
 	GLFWwindow* window = nullptr;
 
 	std::vector<System*> engineSystems;
@@ -106,3 +106,5 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, 
 	VkDebugUtilsMessengerEXT debugMessenger,
 	const VkAllocationCallbacks* pAllocator);
+
+static void framebufferResizeCallback(GLFWwindow* window, int width, int height);

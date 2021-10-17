@@ -99,7 +99,7 @@ void GraphicPipeline::init(VkRenderPass renderpass)
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
 
-	VkDynamicState dynamicStates[2] = {
+	/*VkDynamicState dynamicStates[2] = {
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_LINE_WIDTH
 	};
@@ -107,7 +107,7 @@ void GraphicPipeline::init(VkRenderPass renderpass)
 	VkPipelineDynamicStateCreateInfo dynamicState{};
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamicState.dynamicStateCount = 2;
-	dynamicState.pDynamicStates = dynamicStates;
+	dynamicState.pDynamicStates = dynamicStates;*/
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -152,6 +152,7 @@ void GraphicPipeline::init(VkRenderPass renderpass)
 
 void GraphicPipeline::close()
 {
+	vkDestroyPipeline(vulkanDevice, vulkanPipeline, nullptr);
 	vkDestroyPipelineLayout(vulkanDevice, vulkanpipelineLayout, nullptr);
 }
 

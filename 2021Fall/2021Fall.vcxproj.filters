@@ -2,9 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="src\Engine\Application.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
@@ -12,6 +9,9 @@
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\settings.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
   </ItemGroup>
@@ -24,22 +24,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Engine\Application.hpp">
-      <Filter>Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\helper.hpp">
-      <Filter>Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\System.hpp">
-      <Filter>Engine</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\helper.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
     <ClInclude Include="src\Engine\settings.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\System.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Application.hpp">
       <Filter>Engine</Filter>
     </ClInclude>
   </ItemGroup>
