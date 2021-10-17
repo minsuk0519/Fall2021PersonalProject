@@ -82,14 +82,14 @@ private:
 
 //vulkan variables
 private:
-	VkInstance vulkanInstance;
-	VkDebugUtilsMessengerEXT vulkanDebugMessenger;
+	VkInstance vulkanInstance = VK_NULL_HANDLE;
+	VkDebugUtilsMessengerEXT vulkanDebugMessenger = VK_NULL_HANDLE;
 	VkPhysicalDevice vulkanPhysicalDevice = VK_NULL_HANDLE;
-	VkDevice vulkanDevice;
-	VkQueue vulkanGraphicsQueue;
-	VkQueue vulkanPresentQueue;
-	VkSurfaceKHR vulkanSurface;
-	VkCommandPool vulkanCommandPool;
+	VkDevice vulkanDevice = VK_NULL_HANDLE;
+	VkQueue vulkanGraphicsQueue = VK_NULL_HANDLE;
+	VkQueue vulkanPresentQueue = VK_NULL_HANDLE;
+	VkSurfaceKHR vulkanSurface = VK_NULL_HANDLE;
+	VkCommandPool vulkanCommandPool = VK_NULL_HANDLE;
 
 //member variables
 private:

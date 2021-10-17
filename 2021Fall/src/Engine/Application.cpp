@@ -77,6 +77,7 @@ void Application::close()
     for (auto sys : engineSystems)
     {
         sys->close();
+        delete sys;
     }
 
     closeVulkan();

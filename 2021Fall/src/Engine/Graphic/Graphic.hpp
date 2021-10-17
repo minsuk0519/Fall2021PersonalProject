@@ -11,6 +11,7 @@ public:
 	void init() override;
 	void update(float dt) override;
 	void close() override;
+	~Graphic() override;
 
 private:
 	GraphicPipeline* graphicPipeline = nullptr;

@@ -131,6 +131,8 @@ void Graphic::close()
     CloseSwapChain();
 }
 
+Graphic::~Graphic() {}
+
 void Graphic::SetupSwapChain()
 {
     //create swap chain
