@@ -1,35 +1,41 @@
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-
+//standard library
 #include <iostream>
 
-int main() {
-    glfwInit();
+#include "Engine/Application.hpp"
+#include "Engine/Graphic/Graphic.hpp"
 
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Vulkan window", nullptr, nullptr);
+//for memory debug
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 
-    uint32_t extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+#define _CRTDBG_MAP_ALLOC
+#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
 
-    std::cout << extensionCount << " extensions supported\n";
+#include <crtdbg.h>
 
-    glm::mat4 matrix;
-    glm::vec4 vec;
-    auto test = matrix * vec;
+int main() 
+{
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    //_CrtSetBreakAlloc(679);
 
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+    Application app;
+
+    try {
+        app.init();
+
+        app.AddSystem<Graphic>();
+
+        app.postinit();
+        
+        app.update();
+    } catch (const std::exception& e) {
+        app.close();
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
     }
 
-    glfwDestroyWindow(window);
+    app.close();
 
-    glfwTerminate();
-
-    return 0;
+    return EXIT_SUCCESS;
 }
