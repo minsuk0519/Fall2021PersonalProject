@@ -39,6 +39,9 @@ private:
 	VkBuffer vulkanVertexBuffer;
 	VkDeviceMemory vulkanVertexBufferMemory;
 
+	VkBuffer vulkanIndexBuffer;
+	VkDeviceMemory vulkanIndexBufferMemory;
+
 	size_t currentFrame = 0;
 
 private:

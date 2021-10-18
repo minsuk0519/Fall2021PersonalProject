@@ -21,10 +21,7 @@ void Graphic::init()
             {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
             {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}},
             {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-
-            {{-0.6f, 0.4f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-            {{-0.6f, -0.6f, 0.0f}, {0.0f, 0.0f, 0.0f}},
-            {{0.4f, -0.6f, 0.0f}, {1.0f, 0.0f, 0.0f}}
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}
         };
 
         VkBuffer stagingBuffer;
@@ -43,6 +40,33 @@ void Graphic::init()
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanVertexBuffer, vulkanVertexBufferMemory);
 
         copyBuffer(stagingBuffer, vulkanVertexBuffer, bufferSize);
+
+        vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
+        vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
+    }
+
+    //create index buffer
+    {
+        const std::vector<uint16_t> indices = {
+            0, 1, 2, 2, 3, 0
+        };
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(vulkanDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(vulkanDevice, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanIndexBuffer, vulkanIndexBufferMemory);
+
+        copyBuffer(stagingBuffer, vulkanIndexBuffer, bufferSize);
 
         vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
         vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
@@ -155,6 +179,9 @@ void Graphic::update(float /*dt*/)
 
 void Graphic::close()
 {
+    vkDestroyBuffer(vulkanDevice, vulkanIndexBuffer, nullptr);
+    vkFreeMemory(vulkanDevice, vulkanIndexBufferMemory, nullptr);
+
     vkDestroyBuffer(vulkanDevice, vulkanVertexBuffer, nullptr);
     vkFreeMemory(vulkanDevice, vulkanVertexBufferMemory, nullptr);
 
@@ -333,8 +360,10 @@ void Graphic::SetupSwapChain()
             VkBuffer vertexBuffers[] = { vulkanVertexBuffer };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+            
+            vkCmdBindIndexBuffer(vulkanCommandBuffers[i], vulkanIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-            vkCmdDraw(vulkanCommandBuffers[i], 6, 1, 0, 0);
+            vkCmdDrawIndexed(vulkanCommandBuffers[i], 6, 1, 0, 0, 0);
 
             vkCmdEndRenderPass(vulkanCommandBuffers[i]);
 
