@@ -23,12 +23,14 @@
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp" />
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp" />
+    <ClCompile Include="src\Engine\Graphic\VertexInfo.cpp" />
     <ClCompile Include="src\Engine\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Application.hpp" />
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp" />
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp" />
+    <ClInclude Include="src\Engine\Graphic\VertexInfo.hpp" />
     <ClInclude Include="src\Engine\helper.hpp" />
     <ClInclude Include="src\Engine\settings.hpp" />
     <ClInclude Include="src\Engine\System.hpp" />

@@ -36,9 +36,22 @@ private:
 
 	VkExtent2D vulkanSwapChainExtent;
 
+	VkBuffer vulkanVertexBuffer;
+	VkDeviceMemory vulkanVertexBufferMemory;
+
+	VkBuffer vulkanIndexBuffer;
+	VkDeviceMemory vulkanIndexBufferMemory;
+
 	size_t currentFrame = 0;
 
+private:
 	void SetupSwapChain();
 	void CloseSwapChain();
 	void RecreateSwapChain();
+
+	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+		VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 };
