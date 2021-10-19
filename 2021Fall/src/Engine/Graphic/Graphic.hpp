@@ -42,10 +42,18 @@ private:
 	VkBuffer vulkanIndexBuffer;
 	VkDeviceMemory vulkanIndexBufferMemory;
 
+	std::vector<VkBuffer> vulkanUniformBuffers;
+	std::vector<VkDeviceMemory> vulkanUniformBuffersMemory;
+
+	VkDescriptorSetLayout vulkanDescriptorSetLayout;
+	VkDescriptorPool vulkanDescriptorPool;
+	std::vector<VkDescriptorSet> vulkanDescriptorSets;
+
 	size_t currentFrame = 0;
 
 private:
 	void SetupSwapChain();
+	void DefineDrawBehavior();
 	void CloseSwapChain();
 	void RecreateSwapChain();
 
@@ -54,4 +62,13 @@ private:
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+};
+
+#include <glm/mat4x4.hpp>
+
+struct transform
+{
+	glm::mat4 worldToCamera;
+	glm::mat4 cameraToNDC;
+	glm::mat4 objectMat;
 };

@@ -11,10 +11,11 @@ class GraphicPipeline
 public:
 	GraphicPipeline(VkDevice device);
 
-	void init(VkRenderPass renderpass);
+	void init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout);
 	void close();
 
 	VkPipeline GetPipeline() const;
+	VkPipelineLayout GetPipelinLayout() const;
 private:
 	VkDevice vulkanDevice;
 
