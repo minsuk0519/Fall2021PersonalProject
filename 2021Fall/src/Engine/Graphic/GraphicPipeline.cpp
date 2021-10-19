@@ -5,7 +5,7 @@
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
-void GraphicPipeline::init(VkRenderPass renderpass)
+void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout)
 {
 	VkShaderModule vertShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglevert.spv"));
 	VkShaderModule fragShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglefrag.spv"));
@@ -65,7 +65,7 @@ void GraphicPipeline::init(VkRenderPass renderpass)
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f;
 	rasterizer.depthBiasClamp = 0.0f;
@@ -115,8 +115,8 @@ void GraphicPipeline::init(VkRenderPass renderpass)
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;
-	pipelineLayoutInfo.pSetLayouts = nullptr;
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -163,6 +163,11 @@ void GraphicPipeline::close()
 VkPipeline GraphicPipeline::GetPipeline() const
 {
 	return vulkanPipeline;
+}
+
+VkPipelineLayout GraphicPipeline::GetPipelinLayout() const
+{
+	return vulkanpipelineLayout;
 }
 
 VkShaderModule GraphicPipeline::CreatevulkanShaderModule(const std::vector<char>& code)

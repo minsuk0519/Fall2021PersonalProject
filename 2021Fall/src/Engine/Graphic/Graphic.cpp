@@ -7,7 +7,10 @@
 #include <stdexcept>
 
 //3rd party library
+#define GLM_FORCE_RADIANS
 #include <vulkan/vulkan.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -15,6 +18,8 @@ Graphic::Graphic(VkDevice device, Application* app) : System(device, app) {}
 
 void Graphic::init()
 {
+    SetupSwapChain();
+
     //create vertex buffer
     {
         std::vector<PosColorVertex> vert = {
@@ -72,7 +77,91 @@ void Graphic::init()
         vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
     }
 
-    SetupSwapChain();
+
+    {
+        VkDeviceSize bufferSize = sizeof(transform);
+
+        vulkanUniformBuffers.resize(vulkanSwapChainImages.size());
+        vulkanUniformBuffersMemory.resize(vulkanSwapChainImages.size());
+
+        for (size_t i = 0; i < vulkanSwapChainImages.size(); ++i)
+        {
+            createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vulkanUniformBuffers[i], vulkanUniformBuffersMemory[i]);
+        }
+    }
+
+    {
+        VkDescriptorSetLayoutBinding transformLayoutBinding{};
+        transformLayoutBinding.binding = 0;
+        transformLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        transformLayoutBinding.descriptorCount = 1;
+        transformLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        transformLayoutBinding.pImmutableSamplers = nullptr;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = 1;
+        layoutInfo.pBindings = &transformLayoutBinding;
+
+        if (vkCreateDescriptorSetLayout(vulkanDevice, &layoutInfo, nullptr, &vulkanDescriptorSetLayout) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        VkDescriptorPoolSize poolSize{};
+        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize.descriptorCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = 1;
+        poolInfo.pPoolSizes = &poolSize;
+        poolInfo.maxSets = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+        if (vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &vulkanDescriptorPool) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create descriptor pool!");
+        }
+
+        std::vector<VkDescriptorSetLayout> layouts(vulkanSwapChainImages.size(), vulkanDescriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = vulkanDescriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
+        allocInfo.pSetLayouts = layouts.data();
+
+        vulkanDescriptorSets.resize(vulkanSwapChainImages.size());
+        if (vkAllocateDescriptorSets(vulkanDevice, &allocInfo, vulkanDescriptorSets.data()) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+
+        for (size_t i = 0; i < vulkanSwapChainImages.size(); ++i)
+        {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = vulkanUniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(transform);
+
+            VkWriteDescriptorSet descriptorWrite{};
+            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrite.dstSet = vulkanDescriptorSets[i];
+            descriptorWrite.dstBinding = 0;
+            descriptorWrite.dstArrayElement = 0;
+
+            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrite.descriptorCount = 1;
+
+            descriptorWrite.pBufferInfo = &bufferInfo;
+            descriptorWrite.pImageInfo = nullptr;
+            descriptorWrite.pTexelBufferView = nullptr;
+
+            vkUpdateDescriptorSets(vulkanDevice, 1, &descriptorWrite, 0, nullptr);
+        }
+    }
+
+    DefineDrawBehavior();
 
     //create semaphore
     {
@@ -126,6 +215,23 @@ void Graphic::update(float /*dt*/)
         vkWaitForFences(vulkanDevice, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
     }
     imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+    //update uniform buffer
+    {
+        static float time = 0; 
+        time += 0.0001f;
+
+        transform ubo{};
+        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.worldToCamera = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 10.0f);
+        ubo.cameraToNDC[1][1] *= -1;
+
+        void* data;
+        vkMapMemory(vulkanDevice, vulkanUniformBuffersMemory[imageIndex], 0, sizeof(ubo), 0, &data);
+        memcpy(data, &ubo, sizeof(ubo));
+        vkUnmapMemory(vulkanDevice, vulkanUniformBuffersMemory[imageIndex]);
+    }
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -184,6 +290,15 @@ void Graphic::close()
 
     vkDestroyBuffer(vulkanDevice, vulkanVertexBuffer, nullptr);
     vkFreeMemory(vulkanDevice, vulkanVertexBufferMemory, nullptr);
+
+    for (size_t i = 0; i < vulkanSwapChainImages.size(); ++i)
+    {
+        vkDestroyBuffer(vulkanDevice, vulkanUniformBuffers[i], nullptr);
+        vkFreeMemory(vulkanDevice, vulkanUniformBuffersMemory[i], nullptr);
+    }
+
+    vkDestroyDescriptorSetLayout(vulkanDevice, vulkanDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(vulkanDevice, vulkanDescriptorPool, nullptr);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -281,12 +396,53 @@ void Graphic::SetupSwapChain()
         }
     }
 
+    
+}
+
+void Graphic::CloseSwapChain()
+{
+    for (auto frameBuffer : vulkanSwapChainFramebuffers)
+    {
+        vkDestroyFramebuffer(vulkanDevice, frameBuffer, nullptr);
+    }
+
+    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
+
+    graphicPipeline->close();
+    delete graphicPipeline;
+
+    vkDestroyRenderPass(vulkanDevice, vulkanRenderPass, nullptr);
+
+    for (auto imageView : vulkanSwapChainImageViews)
+    {
+        vkDestroyImageView(vulkanDevice, imageView, nullptr);
+    }
+
+    vkDestroySwapchainKHR(vulkanDevice, vulkanSwapChain, nullptr);
+}
+
+void Graphic::RecreateSwapChain()
+{
+    while (Settings::windowWidth == 0 || Settings::windowHeight == 0)
+    {
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(vulkanDevice);
+
+    CloseSwapChain();
+    SetupSwapChain();
+    DefineDrawBehavior();
+}
+
+void Graphic::DefineDrawBehavior()
+{
     //create graphic pipeline
     {
         graphicPipeline = new GraphicPipeline(vulkanDevice);
-        graphicPipeline->init(vulkanRenderPass);
+        graphicPipeline->init(vulkanRenderPass, vulkanDescriptorSetLayout);
     }
-    
+
     //create framebuffer
     {
         vulkanSwapChainFramebuffers.resize(vulkanSwapChainImageViews.size());
@@ -360,8 +516,11 @@ void Graphic::SetupSwapChain()
             VkBuffer vertexBuffers[] = { vulkanVertexBuffer };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
-            
+
             vkCmdBindIndexBuffer(vulkanCommandBuffers[i], vulkanIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+            vkCmdBindDescriptorSets(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline->GetPipelinLayout(),
+                0, 1, &vulkanDescriptorSets[i], 0, nullptr);
 
             vkCmdDrawIndexed(vulkanCommandBuffers[i], 6, 1, 0, 0, 0);
 
@@ -373,41 +532,6 @@ void Graphic::SetupSwapChain()
             }
         }
     }
-}
-
-void Graphic::CloseSwapChain()
-{
-    for (auto frameBuffer : vulkanSwapChainFramebuffers)
-    {
-        vkDestroyFramebuffer(vulkanDevice, frameBuffer, nullptr);
-    }
-
-    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
-
-    graphicPipeline->close();
-    delete graphicPipeline;
-
-    vkDestroyRenderPass(vulkanDevice, vulkanRenderPass, nullptr);
-
-    for (auto imageView : vulkanSwapChainImageViews)
-    {
-        vkDestroyImageView(vulkanDevice, imageView, nullptr);
-    }
-
-    vkDestroySwapchainKHR(vulkanDevice, vulkanSwapChain, nullptr);
-}
-
-void Graphic::RecreateSwapChain()
-{
-    while (Settings::windowWidth == 0 || Settings::windowHeight == 0)
-    {
-        glfwWaitEvents();
-    }
-
-    vkDeviceWaitIdle(vulkanDevice);
-
-    CloseSwapChain();
-    SetupSwapChain();
 }
 
 void Graphic::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
