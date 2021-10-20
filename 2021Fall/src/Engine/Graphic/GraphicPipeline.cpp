@@ -24,8 +24,8 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-	VkVertexInputBindingDescription bindingDescription = PosColorVertex::getBindingDescription();
-	auto attributeDescriptions = PosColorVertex::getAttributeDescriptions();
+	VkVertexInputBindingDescription bindingDescription = PosColorTexVertex::getBindingDescription();
+	auto attributeDescriptions = PosColorTexVertex::getAttributeDescriptions();
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

@@ -51,6 +51,8 @@ private:
 
 	VkImage vulkanTextureImage;
 	VkDeviceMemory vulkanTextureImageMemory;
+	VkImageView vulkanTextureImageView;
+	VkSampler vulkanTextureSampler;
 
 	size_t currentFrame = 0;
 
@@ -73,6 +75,8 @@ private:
 	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	VkImageView createImageView(VkImage image, VkFormat format);
 };
 
 #include <glm/mat4x4.hpp>
