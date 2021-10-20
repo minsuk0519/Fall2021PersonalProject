@@ -54,6 +54,11 @@ private:
 	VkImageView vulkanTextureImageView;
 	VkSampler vulkanTextureSampler;
 
+	VkImage vulkanDepthImage;
+	VkDeviceMemory vulkanDepthImageMemory;
+	VkImageView vulkanDepthImageView;
+	VkFormat vulkanDepthFormat;
+
 	size_t currentFrame = 0;
 
 private:
@@ -76,7 +81,9 @@ private:
 	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
-	VkImageView createImageView(VkImage image, VkFormat format);
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 };
 
 #include <glm/mat4x4.hpp>
