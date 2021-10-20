@@ -49,6 +49,11 @@ private:
 	VkDescriptorPool vulkanDescriptorPool;
 	std::vector<VkDescriptorSet> vulkanDescriptorSets;
 
+	VkImage vulkanTextureImage;
+	VkDeviceMemory vulkanTextureImageMemory;
+	VkImageView vulkanTextureImageView;
+	VkSampler vulkanTextureSampler;
+
 	size_t currentFrame = 0;
 
 private:
@@ -62,6 +67,16 @@ private:
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+		VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+
+	VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
+	VkImageView createImageView(VkImage image, VkFormat format);
 };
 
 #include <glm/mat4x4.hpp>

@@ -171,6 +171,8 @@ void Application::initVulkan()
         {
             throw std::runtime_error("failed to find a suitable GPU!");
         }
+
+        vkGetPhysicalDeviceProperties(vulkanPhysicalDevice, &vulkanDevcieProperties);
     }
 
     //logical device
@@ -388,7 +390,10 @@ bool Application::isDeviceSuitable(VkPhysicalDevice device)
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    return indices.isComplete() && extensionsSupported &&swapChainAdequate;
+    VkPhysicalDeviceFeatures supportedFeatures;
+    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
 bool Application::checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -614,4 +619,9 @@ VkQueue Application::GetPresentQueue() const
 VkPhysicalDevice Application::GetPhysicalDevice() const
 {
     return vulkanPhysicalDevice;
+}
+
+VkPhysicalDeviceProperties Application::GetDeviceProperties() const
+{
+    return vulkanDevcieProperties;
 }

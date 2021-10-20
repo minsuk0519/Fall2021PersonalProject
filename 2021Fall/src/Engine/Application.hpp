@@ -52,6 +52,8 @@ public:
 	VkQueue GetGraphicQueue() const;
 	VkQueue GetPresentQueue() const;
 	VkPhysicalDevice GetPhysicalDevice() const;
+
+	VkPhysicalDeviceProperties GetDeviceProperties() const;
 	
 //member variables
 public:
@@ -91,6 +93,8 @@ private:
 	VkQueue vulkanPresentQueue = VK_NULL_HANDLE;
 	VkSurfaceKHR vulkanSurface = VK_NULL_HANDLE;
 	VkCommandPool vulkanCommandPool = VK_NULL_HANDLE;
+
+	VkPhysicalDeviceProperties vulkanDevcieProperties;
 
 //member variables
 private:
