@@ -8,8 +8,8 @@
 #include <unordered_map>
 
 //3rd party library
-#define GLM_FORCE_RADIANS
 #include <vulkan/vulkan.h>
+#define GLM_FORCE_RADIANS
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
