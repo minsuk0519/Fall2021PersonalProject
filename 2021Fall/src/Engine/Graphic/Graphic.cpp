@@ -5,6 +5,7 @@
 
 //standard library
 #include <stdexcept>
+#include <unordered_map>
 
 //3rd party library
 #define GLM_FORCE_RADIANS
@@ -13,6 +14,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tinyobjloader/tiny_obj_loader.h>
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -22,47 +25,83 @@ void Graphic::init()
 {
     SetupSwapChain();
 
-    //create vertex buffer
+    //create vertex & index buffer
     {
         std::vector<PosColorTexVertex> vert = {
-            {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-            {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            //{{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+            //{{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+            //{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            //{{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
 
-            {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-            {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-            {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}
+            //{{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+            //{{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
+            //{{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            //{{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}
         };
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
+        std::vector<uint32_t> indices = {
+            //0, 1, 2, 2, 3, 0,
+            //4, 5, 6, 6, 7, 4
+        };
 
-        VkDeviceSize bufferSize = sizeof(vert[0]) * vert.size();
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+        std::vector<tinyobj::shape_t> shapes;
+        tinyobj::attrib_t attrib;
 
-        void* data;
-        vkMapMemory(vulkanDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vert.data(), static_cast<size_t>(bufferSize));
-        vkUnmapMemory(vulkanDevice, stagingBufferMemory);
+        loadModel(attrib, shapes, "data/models/viking_room/viking_room.obj");
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        std::unordered_map<PosColorTexVertex, uint32_t> uniqueVertices{};
+
+        for (const auto& shape : shapes)
+        {
+            for (const auto& index : shape.mesh.indices)
+            {
+                PosColorTexVertex vertex{};
+
+                vertex.position = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+                vertex.texCoord = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+
+                vertex.color = { 1.0f, 1.0f, 1.0f };
+
+                if (uniqueVertices.count(vertex) == 0)
+                {
+                    uniqueVertices[vertex] = static_cast<uint32_t>(vert.size());
+                    vert.push_back(vertex);
+                }
+
+                indices.push_back(uniqueVertices[vertex]);
+            }
+        }
+
+        VkBuffer vertexstagingBuffer;
+        VkDeviceMemory vertexstagingBufferMemory;
+
+        VkDeviceSize vertexbufferSize = sizeof(vert[0]) * vert.size();
+        createBuffer(vertexbufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexstagingBuffer, vertexstagingBufferMemory);
+
+        void* vertexdata;
+        vkMapMemory(vulkanDevice, vertexstagingBufferMemory, 0, vertexbufferSize, 0, &vertexdata);
+        memcpy(vertexdata, vert.data(), static_cast<size_t>(vertexbufferSize));
+        vkUnmapMemory(vulkanDevice, vertexstagingBufferMemory);
+
+        createBuffer(vertexbufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanVertexBuffer, vulkanVertexBufferMemory);
 
-        copyBuffer(stagingBuffer, vulkanVertexBuffer, bufferSize);
+        copyBuffer(vertexstagingBuffer, vulkanVertexBuffer, vertexbufferSize);
 
-        vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
-        vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
-    }
+        vkDestroyBuffer(vulkanDevice, vertexstagingBuffer, nullptr);
+        vkFreeMemory(vulkanDevice, vertexstagingBufferMemory, nullptr);
 
-    //create index buffer
-    {
-        const std::vector<uint16_t> indices = {
-            0, 1, 2, 2, 3, 0,
-            4, 5, 6, 6, 7, 4
-        };
+
+        //index
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -102,7 +141,9 @@ void Graphic::init()
     //create texture image
     {
         int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("data/textures/texture.png", &texWidth,
+        //stbi_uc* pixels = stbi_load("data/textures/texture.png", &texWidth,
+        //    &texHeight, &texChannels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load("data/models/viking_room/viking_room.png", &texWidth,
             &texHeight, &texChannels, STBI_rgb_alpha);
 
         VkDeviceSize imageSize = texWidth * texHeight * 4;
@@ -654,12 +695,13 @@ void Graphic::DefineDrawBehavior()
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-            vkCmdBindIndexBuffer(vulkanCommandBuffers[i], vulkanIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+            //use 32 byte uint for using more than 65535 byte indices
+            vkCmdBindIndexBuffer(vulkanCommandBuffers[i], vulkanIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
             vkCmdBindDescriptorSets(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline->GetPipelinLayout(),
                 0, 1, &vulkanDescriptorSets[i], 0, nullptr);
 
-            vkCmdDrawIndexed(vulkanCommandBuffers[i], 12, 1, 0, 0, 0);
+            vkCmdDrawIndexed(vulkanCommandBuffers[i], 11484, 1, 0, 0, 0);
 
             vkCmdEndRenderPass(vulkanCommandBuffers[i]);
 
@@ -936,4 +978,15 @@ VkFormat Graphic::findSupportedFormat(const std::vector<VkFormat>& candidates, V
     }
 
     throw std::runtime_error("failed to find supported forma!");
+}
+
+void Graphic::loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path)
+{
+    std::vector<tinyobj::material_t> materials;
+    std::string warn, err;
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path))
+    {
+        throw std::runtime_error("failed to load obj file : " + warn + err);
+    }
 }

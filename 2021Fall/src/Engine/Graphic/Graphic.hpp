@@ -1,7 +1,11 @@
 #pragma once
 
+//3rd party librarys
+#include <tinyobjloader/tiny_obj_loader.h>
+
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
+
 
 class Graphic : public System
 {
@@ -84,6 +88,8 @@ private:
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path);
 };
 
 #include <glm/mat4x4.hpp>

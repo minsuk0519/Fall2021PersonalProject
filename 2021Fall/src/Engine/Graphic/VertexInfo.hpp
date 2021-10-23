@@ -7,6 +7,8 @@
 #include <glm/vec3.hpp>
 #include <glm/vec2.hpp>
 #include <vulkan/vulkan.h>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/hash.hpp>
 
 struct PosColorVertex
 {
@@ -27,4 +29,19 @@ struct PosColorTexVertex
 	static VkVertexInputBindingDescription getBindingDescription();
 
 	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
+
+	bool operator==(const PosColorTexVertex& rhs) const;
 };
+
+namespace std
+{
+	template<> struct hash<PosColorTexVertex>
+	{
+		size_t operator()(PosColorTexVertex const& vertex) const
+		{
+			return ((hash<glm::vec3>()(vertex.position) ^ 
+				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+				(hash<glm::vec2>()(vertex.texCoord) << 1);
+		}
+	};
+}
