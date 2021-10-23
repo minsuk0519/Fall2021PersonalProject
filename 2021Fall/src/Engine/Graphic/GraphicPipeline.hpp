@@ -11,7 +11,7 @@ class GraphicPipeline
 public:
 	GraphicPipeline(VkDevice device);
 
-	void init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout);
+	void init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
 	void close();
 
 	VkPipeline GetPipeline() const;
