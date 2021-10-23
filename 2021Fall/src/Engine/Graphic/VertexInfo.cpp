@@ -60,3 +60,8 @@ std::array<VkVertexInputAttributeDescription, 3> PosColorTexVertex::getAttribute
 
 	return result;
 }
+
+bool PosColorTexVertex::operator==(const PosColorTexVertex& rhs) const
+{
+	return ((position == rhs.position) && (color == rhs.color) && (texCoord == rhs.texCoord));
+}
