@@ -5,7 +5,7 @@
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
-void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout)
+void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples)
 {
 	VkShaderModule vertShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglevert.spv"));
 	VkShaderModule fragShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglefrag.spv"));
@@ -74,7 +74,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 	VkPipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampling.sampleShadingEnable = VK_FALSE;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampling.rasterizationSamples = msaaSamples;
 	multisampling.minSampleShading = 1.0f;
 	multisampling.pSampleMask = nullptr;
 	multisampling.alphaToCoverageEnable = VK_FALSE;

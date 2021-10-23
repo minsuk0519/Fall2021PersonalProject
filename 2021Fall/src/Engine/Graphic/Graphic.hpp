@@ -63,8 +63,14 @@ private:
 	VkImageView vulkanDepthImageView;
 	VkFormat vulkanDepthFormat;
 
+	VkImage vulkanColorImage;
+	VkDeviceMemory vulkanColorImageMemory;
+	VkImageView vulkanColorImageView;
+
 	size_t currentFrame = 0;
 	uint32_t textureMipLevels;
+
+	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 private:
 	void SetupSwapChain();
@@ -78,7 +84,7 @@ private:
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkFormat format, VkImageTiling tiling,
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
 		VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
 	VkCommandBuffer beginSingleTimeCommands();
@@ -92,6 +98,8 @@ private:
 
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path);
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+
+	VkSampleCountFlagBits getMaxUsableSampleCount();
 };
 
 #include <glm/mat4x4.hpp>
