@@ -6,6 +6,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <vulkan/vulkan.h>
+#include <imgui/imgui_impl_vulkan.h>
 
 //standard library
 #include <vector>
@@ -56,7 +57,11 @@ public:
 	VkPhysicalDevice GetPhysicalDevice() const;
 
 	VkPhysicalDeviceProperties GetDeviceProperties() const;
-	
+
+//gui method
+public:
+	void RenderGui();
+
 //member variables
 public:
 	bool framebufferSizeUpdate = false;
@@ -88,6 +93,8 @@ private:
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+	void CreateSurface(GLFWwindow* windowptr, VkSurfaceKHR& surface);
+
 //vulkan variables
 private:
 	VkInstance vulkanInstance = VK_NULL_HANDLE;
@@ -101,9 +108,17 @@ private:
 
 	VkPhysicalDeviceProperties vulkanDevcieProperties;
 
+//for Gui window
+private:
+	ImGui_ImplVulkanH_Window guivulkanWindow;
+	VkQueue guiQueue;
+	VkSurfaceKHR guiSurface = VK_NULL_HANDLE;
+	VkDescriptorPool guiDescriptorPool;
+
 //member variables
 private:
 	GLFWwindow* window = nullptr;
+	GLFWwindow* guiWindow = nullptr;
 
 	std::vector<System*> engineSystems;
 

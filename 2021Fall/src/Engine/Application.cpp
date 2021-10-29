@@ -1,9 +1,9 @@
 //third party library
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#include <imgui/imgui_impl_glfw.h>
 
 //standard library
 #include <iostream>
@@ -31,6 +31,8 @@ const std::vector<const char*> deviceExtensions = {
 
 Application* Application::applicationPtr = nullptr;
 
+VkExtent2D guiWindowSize = { 1280, 1280 };
+
 Application::Application() {}
 
 void Application::init()
@@ -51,6 +53,107 @@ void Application::init()
     }
 
     initVulkan();
+
+    {
+        guiWindow = glfwCreateWindow(guiWindowSize.width, guiWindowSize.height, "GUI Window", NULL, NULL);
+
+        glfwMakeContextCurrent(guiWindow);
+        glfwSetWindowUserPointer(guiWindow, this);
+
+        CreateSurface(guiWindow, guiSurface);
+
+        guivulkanWindow.Surface = guiSurface;
+
+        QueueFamilyIndices indices = findQueueFamilies(vulkanPhysicalDevice);
+
+        VkBool32 presentSupport = false;
+
+        uint32_t queueFamiliyIndex = indices.graphicsFamily.value();
+        vkGetPhysicalDeviceSurfaceSupportKHR(vulkanPhysicalDevice, queueFamiliyIndex, guiSurface, &presentSupport);
+
+        const VkFormat requestSurfaceImageFormat[] = { VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };
+        const VkColorSpaceKHR requestSurfaceColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
+        guivulkanWindow.SurfaceFormat = ImGui_ImplVulkanH_SelectSurfaceFormat(vulkanPhysicalDevice, guiSurface, requestSurfaceImageFormat, (size_t)IM_ARRAYSIZE(requestSurfaceImageFormat), requestSurfaceColorSpace);
+
+        VkPresentModeKHR present_modes[] = { VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR };
+        guivulkanWindow.PresentMode = ImGui_ImplVulkanH_SelectPresentMode(vulkanPhysicalDevice, guiSurface, &present_modes[0], IM_ARRAYSIZE(present_modes));
+
+        ImGui_ImplVulkanH_CreateOrResizeWindow(vulkanInstance, vulkanPhysicalDevice, vulkanDevice, &guivulkanWindow,
+            queueFamiliyIndex, nullptr, guiWindowSize.width, guiWindowSize.height, 2);
+
+        {
+            VkDescriptorPoolSize pool_sizes[] =
+            {
+                { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+                { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+                { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+                { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+                { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+                { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+            };
+            VkDescriptorPoolCreateInfo pool_info = {};
+            pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+            pool_info.maxSets = 1000 * IM_ARRAYSIZE(pool_sizes);
+            pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
+            pool_info.pPoolSizes = pool_sizes;
+            VkResult result = vkCreateDescriptorPool(vulkanDevice, &pool_info, nullptr, &guiDescriptorPool);
+            if (result != VK_SUCCESS)
+            {
+                throw std::runtime_error("Failed to create decriptorpool for imgui!");
+            }
+        }
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        ImGui::StyleColorsDark();
+
+        ImGui_ImplGlfw_InitForVulkan(guiWindow, true);
+        ImGui_ImplVulkan_InitInfo init_info = {};
+        init_info.Instance = vulkanInstance;
+        init_info.PhysicalDevice = vulkanPhysicalDevice;
+        init_info.Device = vulkanDevice;
+        init_info.QueueFamily = queueFamiliyIndex;
+        init_info.Queue = guiQueue;
+        init_info.PipelineCache = VK_NULL_HANDLE;
+        init_info.DescriptorPool = guiDescriptorPool;
+        init_info.Allocator = VK_NULL_HANDLE;
+        init_info.MinImageCount = 2;
+        init_info.ImageCount = guivulkanWindow.ImageCount;
+        ImGui_ImplVulkan_Init(&init_info, guivulkanWindow.RenderPass);
+
+        {
+            // Use any command queue
+            VkCommandPool command_pool = guivulkanWindow.Frames[guivulkanWindow.FrameIndex].CommandPool;
+            VkCommandBuffer command_buffer = guivulkanWindow.Frames[guivulkanWindow.FrameIndex].CommandBuffer;
+
+            vkResetCommandPool(vulkanDevice, command_pool, 0);
+            VkCommandBufferBeginInfo begin_info = {};
+            begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            vkBeginCommandBuffer(command_buffer, &begin_info);
+
+            ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+
+            VkSubmitInfo end_info = {};
+            end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            end_info.commandBufferCount = 1;
+            end_info.pCommandBuffers = &command_buffer;
+            vkEndCommandBuffer(command_buffer);
+            vkQueueSubmit(guiQueue, 1, &end_info, VK_NULL_HANDLE);
+
+            vkDeviceWaitIdle(vulkanDevice);
+            ImGui_ImplVulkan_DestroyFontUploadObjects();
+        }
+    }
+
+    glfwMakeContextCurrent(window);
 }
 
 void Application::postinit()
@@ -65,11 +168,36 @@ void Application::update()
 {
     while (!glfwWindowShouldClose(window)) 
     {
-        glfwPollEvents();
-
-        for (auto sys : engineSystems)
+        //main window
         {
-            sys->update(0.016f); //should be changed
+            glfwMakeContextCurrent(window);
+
+            glfwPollEvents();
+
+            for (auto sys : engineSystems)
+            {
+                sys->update(0.016f); //should be changed
+            }
+        }
+
+        //gui window
+        {
+            glfwMakeContextCurrent(guiWindow);
+
+            glfwPollEvents();
+            glfwSwapBuffers(guiWindow);
+
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+            {
+                if (ImGui::Begin("Hello"))
+                {
+                    ImGui::End();
+                }
+            }
+
+            RenderGui();
         }
     }
 
@@ -84,7 +212,13 @@ void Application::close()
         delete sys;
     }
 
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     closeVulkan();
+
+    glfwDestroyWindow(guiWindow);
 
     glfwDestroyWindow(window);
 
@@ -155,10 +289,7 @@ void Application::initVulkan()
 
     //surface
     {
-        if (glfwCreateWindowSurface(vulkanInstance, window, nullptr, &vulkanSurface) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to creaete window surface!");
-        }
+        CreateSurface(window, vulkanSurface);
     }
 
     //pick physical
@@ -199,11 +330,13 @@ void Application::initVulkan()
         std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
         float queuePriority = 1.0f;
-        for (uint32_t queueFamily : uniqueQueueFamilies) {
+        for (uint32_t queueFamily : uniqueQueueFamilies) 
+        {
             VkDeviceQueueCreateInfo queueCreateInfo{};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex = queueFamily;
-            queueCreateInfo.queueCount = 1;
+            //one queue is for imgui
+            queueCreateInfo.queueCount = 2;
             queueCreateInfo.pQueuePriorities = &queuePriority;
             queueCreateInfos.push_back(queueCreateInfo);
         }
@@ -239,6 +372,8 @@ void Application::initVulkan()
         }
 
         vkGetDeviceQueue(vulkanDevice, indices.graphicsFamily.value(), 0, &vulkanGraphicsQueue);
+        //for imgui
+        vkGetDeviceQueue(vulkanDevice, indices.graphicsFamily.value(), 1, &guiQueue);
         vkGetDeviceQueue(vulkanDevice, indices.presentFamily.value(), 0, &vulkanPresentQueue);
     }
 
@@ -273,6 +408,10 @@ void Application::setVulkandebug()
 
 void Application::closeVulkan()
 {
+    ImGui_ImplVulkanH_DestroyWindow(vulkanInstance, vulkanDevice, &guivulkanWindow, nullptr);
+
+    vkDestroyDescriptorPool(vulkanDevice, guiDescriptorPool, nullptr);
+
     vkDestroyCommandPool(vulkanDevice, vulkanCommandPool, nullptr);
 
     vkDestroyDevice(vulkanDevice, nullptr);
@@ -549,6 +688,19 @@ VkExtent2D Application::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabil
     }
 }
 
+void Application::CreateSurface(GLFWwindow* windowptr, VkSurfaceKHR& surface)
+{
+    if (surface != nullptr)
+    {
+        std::cout << "target surface is not nullptr!" << std::endl;
+    }
+
+    if (glfwCreateWindowSurface(vulkanInstance, windowptr, nullptr, &surface) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to creaete window surface!");
+    }
+}
+
 VkSwapchainKHR Application::CreateSwapChain(uint32_t& imageCount, VkFormat& swapChainImageFormat, VkExtent2D& swapChainExtent)
 {
     VkSwapchainKHR swapChain;
@@ -643,3 +795,94 @@ VkPhysicalDeviceProperties Application::GetDeviceProperties() const
 {
     return vulkanDevcieProperties;
 }
+
+void Application::RenderGui()
+{
+    // Rendering
+    ImGui::Render();
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+    if (!is_minimized)
+    {
+        guivulkanWindow.ClearValue.color.float32[0] = 0.3f;
+        guivulkanWindow.ClearValue.color.float32[1] = 0.3f;
+        guivulkanWindow.ClearValue.color.float32[2] = 0.3f;
+        guivulkanWindow.ClearValue.color.float32[3] = 1.0f;
+
+        VkSemaphore image_acquired_semaphore = guivulkanWindow.FrameSemaphores[guivulkanWindow.SemaphoreIndex].ImageAcquiredSemaphore;
+        VkSemaphore render_complete_semaphore = guivulkanWindow.FrameSemaphores[guivulkanWindow.SemaphoreIndex].RenderCompleteSemaphore;
+        VkResult err = vkAcquireNextImageKHR(vulkanDevice, guivulkanWindow.Swapchain, UINT64_MAX, image_acquired_semaphore, VK_NULL_HANDLE, &guivulkanWindow.FrameIndex);
+        if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
+        {
+            //g_SwapChainRebuild = true;
+            return;
+        }
+
+        ImGui_ImplVulkanH_Frame* fd = &guivulkanWindow.Frames[guivulkanWindow.FrameIndex];
+        {
+            err = vkWaitForFences(vulkanDevice, 1, &fd->Fence, VK_TRUE, UINT64_MAX);
+
+            err = vkResetFences(vulkanDevice, 1, &fd->Fence);
+        }
+        {
+            err = vkResetCommandPool(vulkanDevice, fd->CommandPool, 0);
+            VkCommandBufferBeginInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
+        }
+        {
+            VkRenderPassBeginInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            info.renderPass = guivulkanWindow.RenderPass;
+            info.framebuffer = fd->Framebuffer;
+            info.renderArea.extent.width = guivulkanWindow.Width;
+            info.renderArea.extent.height = guivulkanWindow.Height;
+            info.clearValueCount = 1;
+            info.pClearValues = &guivulkanWindow.ClearValue;
+            vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+        }
+
+        // Record dear imgui primitives into command buffer
+        ImGui_ImplVulkan_RenderDrawData(draw_data, fd->CommandBuffer);
+
+        // Submit command buffer
+        vkCmdEndRenderPass(fd->CommandBuffer);
+        {
+            VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            VkSubmitInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            info.waitSemaphoreCount = 1;
+            info.pWaitSemaphores = &image_acquired_semaphore;
+            info.pWaitDstStageMask = &wait_stage;
+            info.commandBufferCount = 1;
+            info.pCommandBuffers = &fd->CommandBuffer;
+            info.signalSemaphoreCount = 1;
+            info.pSignalSemaphores = &render_complete_semaphore;
+
+            err = vkEndCommandBuffer(fd->CommandBuffer);
+            err = vkQueueSubmit(guiQueue, 1, &info, fd->Fence);
+        }
+
+        {
+            //if (g_SwapChainRebuild)
+            //    return;
+            VkSemaphore render_complete_semaphore = guivulkanWindow.FrameSemaphores[guivulkanWindow.SemaphoreIndex].RenderCompleteSemaphore;
+            VkPresentInfoKHR info = {};
+            info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            info.waitSemaphoreCount = 1;
+            info.pWaitSemaphores = &render_complete_semaphore;
+            info.swapchainCount = 1;
+            info.pSwapchains = &guivulkanWindow.Swapchain;
+            info.pImageIndices = &guivulkanWindow.FrameIndex;
+            err = vkQueuePresentKHR(guiQueue, &info);
+            if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
+            {
+                //g_SwapChainRebuild = true;
+                return;
+            }
+            guivulkanWindow.SemaphoreIndex = (guivulkanWindow.SemaphoreIndex + 1) % guivulkanWindow.ImageCount;
+        }
+    }
+}
+
