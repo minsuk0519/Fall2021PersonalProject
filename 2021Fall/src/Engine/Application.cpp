@@ -12,7 +12,7 @@
 #include <algorithm>
 
 #include "Application.hpp"
-#include "settings.hpp"
+#include "Misc/settings.hpp"
 #include "System.hpp"
 
 const std::vector<const char*> validationLayers = {
@@ -28,6 +28,10 @@ const std::vector<const char*> deviceExtensions = {
 #else
     const bool enableValidationLayers = true;
 #endif
+
+Application* Application::applicationPtr = nullptr;
+
+Application::Application() {}
 
 void Application::init()
 {
@@ -85,6 +89,18 @@ void Application::close()
     glfwDestroyWindow(window);
 
     glfwTerminate();
+
+    delete applicationPtr;
+}
+
+Application* Application::APP()
+{
+    if (applicationPtr == nullptr)
+    {
+        applicationPtr = new Application();
+    }
+
+    return applicationPtr;
 }
 
 void Application::initVulkan()

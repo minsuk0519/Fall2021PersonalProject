@@ -37,6 +37,8 @@ public:
 	void update();
 	void close();
 
+	static Application* APP();
+
 //template method
 public:
 	template <class T> requires std::derived_from<T, System>
@@ -61,6 +63,9 @@ public:
 
 //vulkan method
 private:
+	//create only one instance
+	Application();
+
 	void initVulkan();
 	void setVulkandebug();
 	
@@ -101,8 +106,11 @@ private:
 	GLFWwindow* window = nullptr;
 
 	std::vector<System*> engineSystems;
+
+	static Application* applicationPtr;
 };
 
+//helper function
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
 	const VkAllocationCallbacks* pAllocator, 

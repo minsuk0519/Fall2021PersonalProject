@@ -1,6 +1,6 @@
 #include "GraphicPipeline.hpp"
-#include "Engine/helper.hpp"
-#include "Engine/settings.hpp"
+#include "Engine/Misc/helper.hpp"
+#include "Engine/Misc/settings.hpp"
 #include "VertexInfo.hpp"
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}

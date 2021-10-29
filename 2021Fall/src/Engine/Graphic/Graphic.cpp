@@ -1,5 +1,5 @@
 #include "Graphic.hpp"
-#include "Engine/settings.hpp"
+#include "Engine/Misc/settings.hpp"
 #include "Engine/Application.hpp"
 #include "VertexInfo.hpp"
 
