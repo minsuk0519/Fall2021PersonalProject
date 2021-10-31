@@ -7,8 +7,8 @@ GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
 void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples)
 {
-	VkShaderModule vertShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglevert.spv"));
-	VkShaderModule fragShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/simpletrianglefrag.spv"));
+	VkShaderModule vertShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/baserendervert.spv"));
+	VkShaderModule fragShaderModule = CreatevulkanShaderModule(Helper::readFile("data/shaders/baserenderfrag.spv"));
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -22,7 +22,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 	fragShaderStageInfo.module = fragShaderModule;
 	fragShaderStageInfo.pName = "main";
 
-	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertShaderStageInfo, fragShaderStageInfo };
 
 	VkVertexInputBindingDescription bindingDescription = PosColorTexVertex::getBindingDescription();
 	auto attributeDescriptions = PosColorTexVertex::getAttributeDescriptions();
@@ -105,12 +105,14 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
+	std::array<VkPipelineColorBlendAttachmentState, 2> colorBlendAttachments{ colorBlendAttachment, colorBlendAttachment };
+
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = VK_LOGIC_OP_COPY;
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
+	colorBlending.attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size());
+	colorBlending.pAttachments = colorBlendAttachments.data();
 	colorBlending.blendConstants[0] = 0.0f;
 	colorBlending.blendConstants[1] = 0.0f;
 	colorBlending.blendConstants[2] = 0.0f;
@@ -140,8 +142,8 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.stageCount = shaderStages.size();
+	pipelineInfo.pStages = shaderStages.data();
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;

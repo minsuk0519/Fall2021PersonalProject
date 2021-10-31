@@ -1,11 +1,28 @@
 #pragma once
 
+//standard library
+#include <array>
+
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
 
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
 
+enum RENDERPASS
+{
+	COLORATTACHMENT = 0,
+	NORMALATTACHMENT,
+	//POSITIONATTACHMENT,
+	COLORATTACHMENT_MAX,
+	COLORATTACHMENT_MSAA = COLORATTACHMENT + COLORATTACHMENT_MAX,
+	NORMALATTACHMENT_MSAA = NORMALATTACHMENT + COLORATTACHMENT_MAX,
+	//POSITIONATTACHMENT_MSAA = POSITIONATTACHMENT + COLORATTACHMENT_MAX,
+
+	DEPTHATTACHMENT = COLORATTACHMENT_MAX * 2,
+	FINALIMAGE = DEPTHATTACHMENT + 1,
+	RENDERPASS_MAX = FINALIMAGE,
+};
 
 class Graphic : public System
 {
@@ -63,9 +80,9 @@ private:
 	VkImageView vulkanDepthImageView;
 	VkFormat vulkanDepthFormat;
 
-	VkImage vulkanColorImage;
-	VkDeviceMemory vulkanColorImageMemory;
-	VkImageView vulkanColorImageView;
+	std::array<VkImage, RENDERPASS::COLORATTACHMENT_MAX> vulkanColorImage;
+	std::array<VkDeviceMemory, RENDERPASS::COLORATTACHMENT_MAX> vulkanColorImageMemory;
+	std::array<VkImageView, RENDERPASS::COLORATTACHMENT_MAX> vulkanColorImageView;
 
 	uint32_t textureMipLevels;
 

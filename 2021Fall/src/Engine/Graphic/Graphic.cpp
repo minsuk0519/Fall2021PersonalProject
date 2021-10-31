@@ -495,95 +495,18 @@ void Graphic::SetupSwapChain()
         }
     }
 
-    //create renderpass
-    {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = vulkanSwapChainImageFormat;
-        colorAttachment.samples = vulkanMSAASamples;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        vulkanDepthFormat = findSupportedFormat({
-            VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
-            }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = vulkanDepthFormat;
-        depthAttachment.samples = vulkanMSAASamples;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription colorAttachmentResolve{};
-        colorAttachmentResolve.format = vulkanSwapChainImageFormat;
-        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentRef{};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = 1;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference colorAttachmentResolveRef{};
-        colorAttachmentResolveRef.attachment = 2;
-        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        subpass.pResolveAttachments = &colorAttachmentResolveRef;
-
-        std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment, colorAttachmentResolve };
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(vulkanDevice, &renderPassInfo, nullptr, &vulkanRenderPass) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create render pass!");
-        }
-    }
-
     //create resources (multisampled color resource)
     {
         VkFormat colorFormat = vulkanSwapChainImageFormat;
 
-        createImage(Settings::windowWidth, Settings::windowHeight, 1, vulkanMSAASamples, colorFormat,
-            VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanColorImage, vulkanColorImageMemory);
+        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+        {
+            createImage(Settings::windowWidth, Settings::windowHeight, 1, vulkanMSAASamples, colorFormat,
+                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanColorImage[i], vulkanColorImageMemory[i]);
 
-        vulkanColorImageView = createImageView(vulkanColorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+            vulkanColorImageView[i] = createImageView(vulkanColorImage[i], colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        }
     }
 
     //depth buffer
@@ -604,9 +527,12 @@ void Graphic::SetupSwapChain()
 
 void Graphic::CloseSwapChain()
 {
-    vkDestroyImageView(vulkanDevice, vulkanColorImageView, nullptr);
-    vkDestroyImage(vulkanDevice, vulkanColorImage, nullptr);
-    vkFreeMemory(vulkanDevice, vulkanColorImageMemory, nullptr);
+    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+    {
+        vkDestroyImageView(vulkanDevice, vulkanColorImageView[i], nullptr);
+        vkDestroyImage(vulkanDevice, vulkanColorImage[i], nullptr);
+        vkFreeMemory(vulkanDevice, vulkanColorImageMemory[i], nullptr);
+    }
 
     vkDestroyImageView(vulkanDevice, vulkanDepthImageView, nullptr);
     vkDestroyImage(vulkanDevice, vulkanDepthImage, nullptr);
@@ -648,6 +574,105 @@ void Graphic::RecreateSwapChain()
 
 void Graphic::DefineDrawBehavior()
 {
+    std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> colorattachments;
+    std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> resolvedattachments;
+    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+    {
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = vulkanSwapChainImageFormat;
+        colorAttachment.samples = vulkanMSAASamples;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentDescription colorAttachmentResolve{};
+        colorAttachmentResolve.format = vulkanSwapChainImageFormat;
+        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        colorattachments[i] = colorAttachment;
+        resolvedattachments[i] = colorAttachmentResolve;
+    }
+
+    vulkanDepthFormat = findSupportedFormat({
+        VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
+        }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+
+    VkAttachmentDescription depthAttachment{};
+    depthAttachment.format = vulkanDepthFormat;
+    depthAttachment.samples = vulkanMSAASamples;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> colorAttachmentRefs{};
+    std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> resolvecolorAttachmentRefs{};
+    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+    {
+        VkAttachmentReference colorAttachmentRef;
+        colorAttachmentRef.attachment = i;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference colorAttachmentResolveRef{};
+        colorAttachmentResolveRef.attachment = i + RENDERPASS::COLORATTACHMENT_MAX;
+        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        colorAttachmentRefs[i] = colorAttachmentRef;
+        resolvecolorAttachmentRefs[i] = colorAttachmentResolveRef;
+    }
+
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = RENDERPASS::DEPTHATTACHMENT;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.srcAccessMask = 0;
+    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
+    subpass.pColorAttachments = colorAttachmentRefs.data();
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    subpass.pResolveAttachments = resolvecolorAttachmentRefs.data();
+
+    std::array<VkAttachmentDescription, RENDERPASS::RENDERPASS_MAX> attachments;
+    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+    {
+        attachments[i] = colorattachments[i];
+        attachments[i + RENDERPASS::COLORATTACHMENT_MAX] = resolvedattachments[i];
+    }
+    attachments[RENDERPASS::DEPTHATTACHMENT] = depthAttachment;
+
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkCreateRenderPass(vulkanDevice, &renderPassInfo, nullptr, &vulkanRenderPass) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create render pass!");
+    }
+
     //create graphic pipeline
     {
         graphicPipeline = new GraphicPipeline(vulkanDevice);
@@ -660,20 +685,23 @@ void Graphic::DefineDrawBehavior()
 
         for (size_t i = 0; i < vulkanSwapChainImageViews.size(); ++i)
         {
-            std::array<VkImageView, 3> attachments[] = {
-                vulkanColorImageView,
-                vulkanDepthImageView,
-                vulkanSwapChainImageViews[i],
-            };
+            std::array<VkImageView, RENDERPASS::RENDERPASS_MAX> attachments;
+            for(int j = 0; j < RENDERPASS::COLORATTACHMENT_MAX; ++j)
+            {
+                attachments[j] = vulkanColorImageView[j];
+            }
+            attachments[RENDERPASS::DEPTHATTACHMENT] = vulkanDepthImageView;
+            attachments[RENDERPASS::COLORATTACHMENT_MSAA] = vulkanSwapChainImageViews[i];
+            attachments[RENDERPASS::NORMALATTACHMENT_MSAA] = vulkanSwapChainImageViews[i];
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.renderPass = vulkanRenderPass;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments->size());
-            framebufferInfo.pAttachments = attachments->data();
+            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
             framebufferInfo.width = Settings::windowWidth;
             framebufferInfo.height = Settings::windowHeight;
-            framebufferInfo.layers = 1;
+            framebufferInfo.layers = 1;            
 
             if (vkCreateFramebuffer(vulkanDevice, &framebufferInfo, nullptr, &vulkanSwapChainFramebuffers[i]) != VK_SUCCESS)
             {
@@ -717,9 +745,12 @@ void Graphic::DefineDrawBehavior()
             renderPassInfo.renderArea.offset = { 0,0 };
             renderPassInfo.renderArea.extent = { Settings::windowWidth, Settings::windowHeight };
 
-            std::array<VkClearValue, 2> clearValues = {};
-            clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-            clearValues[1].depthStencil = { 1.0f, 0 };
+            std::array<VkClearValue, RENDERPASS::RENDERPASS_MAX> clearValues = {};
+            for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+            {
+                clearValues[i].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+            }
+            clearValues[RENDERPASS::DEPTHATTACHMENT].depthStencil = { 1.0f, 0 };
 
             renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
             renderPassInfo.pClearValues = clearValues.data();
