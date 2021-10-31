@@ -58,13 +58,10 @@ public:
 
 	VkPhysicalDeviceProperties GetDeviceProperties() const;
 
-//gui method
-public:
-	void RenderGui();
-
 //member variables
 public:
 	bool framebufferSizeUpdate = false;
+	bool guirecreateswapchain = false;
 
 //vulkan method
 private:
@@ -86,14 +83,20 @@ private:
 
 	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 	SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 	VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+	void CreateVulkanInstance();
 	void CreateSurface(GLFWwindow* windowptr, VkSurfaceKHR& surface);
+
+//gui method
+private:
+	void InitGui();
+	void RenderGui();
 
 //vulkan variables
 private:
@@ -106,7 +109,7 @@ private:
 	VkSurfaceKHR vulkanSurface = VK_NULL_HANDLE;
 	VkCommandPool vulkanCommandPool = VK_NULL_HANDLE;
 
-	VkPhysicalDeviceProperties vulkanDevcieProperties;
+	VkPhysicalDeviceProperties vulkanDeviceProperties;
 
 //for Gui window
 private:
@@ -114,6 +117,9 @@ private:
 	VkQueue guiQueue;
 	VkSurfaceKHR guiSurface = VK_NULL_HANDLE;
 	VkDescriptorPool guiDescriptorPool;
+	int guiminImage = 2;
+
+	uint32_t guiQueueFamilyIndex;
 
 //member variables
 private:
@@ -125,7 +131,7 @@ private:
 	static Application* applicationPtr;
 };
 
-//helper function
+//vulkan helper function
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, 
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, 
 	const VkAllocationCallbacks* pAllocator, 
@@ -135,4 +141,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
 	VkDebugUtilsMessengerEXT debugMessenger,
 	const VkAllocationCallbacks* pAllocator);
 
+//callback function
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+static void guiWindowResizeCallback(GLFWwindow* window, int width, int height);

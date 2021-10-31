@@ -3,10 +3,9 @@
 //3rd party library
 #include <vulkan/vulkan.h>
 
-struct Settings
+namespace Settings
 {
-public:
-	static unsigned int windowWidth;
-	static unsigned int windowHeight;
-	static float GetAspectRatio();
+	extern unsigned int windowWidth;
+	extern unsigned int windowHeight;
+	float GetAspectRatio();
 };
