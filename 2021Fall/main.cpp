@@ -3,6 +3,7 @@
 
 #include "Engine/Application.hpp"
 #include "Engine/Graphic/Graphic.hpp"
+#include "Engine/Level/LevelManager.hpp"
 
 //for memory debug
 #define _CRTDBG_MAP_ALLOC
@@ -19,23 +20,24 @@ int main()
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     //_CrtSetBreakAlloc(157);
 
-    Application app;
+    Application* app = Application::APP();
 
     try {
-        app.init();
+        app->init();
 
-        app.AddSystem<Graphic>();
+        app->AddSystem<Graphic>();
+        app->AddSystem<LevelManager>();
 
-        app.postinit();
+        app->postinit();
         
-        app.update();
+        app->update();
     } catch (const std::exception& e) {
-        app.close();
+        app->close();
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 
-    app.close();
+    app->close();
 
     return EXIT_SUCCESS;
 }

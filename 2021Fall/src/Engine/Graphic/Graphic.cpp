@@ -1,5 +1,5 @@
 #include "Graphic.hpp"
-#include "Engine/settings.hpp"
+#include "Engine/Misc/settings.hpp"
 #include "Engine/Application.hpp"
 #include "VertexInfo.hpp"
 
@@ -8,8 +8,8 @@
 #include <unordered_map>
 
 //3rd party library
-#define GLM_FORCE_RADIANS
 #include <vulkan/vulkan.h>
+#define GLM_FORCE_RADIANS
 #include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #define STB_IMAGE_IMPLEMENTATION
@@ -180,26 +180,6 @@ void Graphic::init()
         vulkanTextureImageView = createImageView(vulkanTextureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels);
     }
 
-    //descriptorpool
-    {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
-
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(vulkanSwapChainImages.size());
-
-        if (vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &vulkanDescriptorPool) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
-    }
-
     //sampler
     {
         VkPhysicalDeviceFeatures deviceFeatures{};
@@ -233,12 +213,33 @@ void Graphic::init()
         }
     }
 
+    //descriptorpool
+    {
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.maxSets = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+        if (vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &vulkanDescriptorPool) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create descriptor pool!");
+        }
+    }
+
     //descriptor
     {
         VkDescriptorSetLayoutBinding uboLayoutBinding{};
         uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
         uboLayoutBinding.pImmutableSamplers = nullptr;
 
@@ -246,8 +247,8 @@ void Graphic::init()
         samplerLayoutBinding.binding = 1;
         samplerLayoutBinding.descriptorCount = 1;
         samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        samplerLayoutBinding.pImmutableSamplers = nullptr;
 
         std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
 
@@ -574,7 +575,7 @@ void Graphic::SetupSwapChain()
         }
     }
 
-    //create resources
+    //create resources (multisampled color resource)
     {
         VkFormat colorFormat = vulkanSwapChainImageFormat;
 
@@ -588,7 +589,7 @@ void Graphic::SetupSwapChain()
     //depth buffer
     {
         vulkanDepthFormat = findSupportedFormat({
-    VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
+            VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
             }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
         createImage(Settings::windowWidth, Settings::windowHeight, 1, vulkanMSAASamples, vulkanDepthFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -596,7 +597,8 @@ void Graphic::SetupSwapChain()
 
         vulkanDepthImageView = createImageView(vulkanDepthImage, vulkanDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
-        transitionImageLayout(vulkanDepthImage, vulkanDepthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+        transitionImageLayout(vulkanDepthImage, vulkanDepthFormat, VK_IMAGE_LAYOUT_UNDEFINED, 
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
     }
 }
 
@@ -1114,6 +1116,7 @@ VkSampleCountFlagBits Graphic::getMaxUsableSampleCount()
 
     VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
         physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+
     if (counts & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
     if (counts & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;
     if (counts & VK_SAMPLE_COUNT_16_BIT) return VK_SAMPLE_COUNT_16_BIT;

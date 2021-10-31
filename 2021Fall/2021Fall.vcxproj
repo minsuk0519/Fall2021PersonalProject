@@ -19,20 +19,34 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="include\imgui\imgui.cpp" />
+    <ClCompile Include="include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="include\imgui\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp" />
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp" />
     <ClCompile Include="src\Engine\Graphic\VertexInfo.cpp" />
-    <ClCompile Include="src\Engine\settings.cpp" />
+    <ClCompile Include="src\Engine\Level\Level.cpp" />
+    <ClCompile Include="src\Engine\Level\LevelManager.cpp" />
+    <ClCompile Include="src\Engine\Level\Object.cpp" />
+    <ClCompile Include="src\Engine\Level\ObjectManager.cpp" />
+    <ClCompile Include="src\Engine\Misc\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Application.hpp" />
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp" />
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp" />
     <ClInclude Include="src\Engine\Graphic\VertexInfo.hpp" />
-    <ClInclude Include="src\Engine\helper.hpp" />
-    <ClInclude Include="src\Engine\settings.hpp" />
+    <ClInclude Include="src\Engine\Level\Level.hpp" />
+    <ClInclude Include="src\Engine\Level\LevelManager.hpp" />
+    <ClInclude Include="src\Engine\Level\Object.hpp" />
+    <ClInclude Include="src\Engine\Level\ObjectManager.hpp" />
+    <ClInclude Include="src\Engine\Misc\helper.hpp" />
+    <ClInclude Include="src\Engine\Misc\settings.hpp" />
     <ClInclude Include="src\Engine\System.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -129,7 +143,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>

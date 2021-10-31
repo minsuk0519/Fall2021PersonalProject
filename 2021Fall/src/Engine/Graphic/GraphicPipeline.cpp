@@ -1,6 +1,6 @@
 #include "GraphicPipeline.hpp"
-#include "Engine/helper.hpp"
-#include "Engine/settings.hpp"
+#include "Engine/Misc/helper.hpp"
+#include "Engine/Misc/settings.hpp"
 #include "VertexInfo.hpp"
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
@@ -50,7 +50,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 	VkRect2D scissor{};
 	scissor.offset = { 0,0 };
 	scissor.extent = { Settings::windowWidth, Settings::windowHeight };
-
+	
 	VkPipelineViewportStateCreateInfo viewportState{};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	viewportState.viewportCount = 1;
@@ -73,9 +73,10 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 
 	VkPipelineMultisampleStateCreateInfo multisampling{};
 	multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampling.sampleShadingEnable = VK_FALSE;
+	multisampling.sampleShadingEnable = VK_TRUE;
+	//close to one is smoother
+	multisampling.minSampleShading = 0.2f;
 	multisampling.rasterizationSamples = msaaSamples;
-	multisampling.minSampleShading = 1.0f;
 	multisampling.pSampleMask = nullptr;
 	multisampling.alphaToCoverageEnable = VK_FALSE;
 	multisampling.alphaToOneEnable = VK_FALSE;

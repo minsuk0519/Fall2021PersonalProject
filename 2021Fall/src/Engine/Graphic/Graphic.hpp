@@ -67,10 +67,12 @@ private:
 	VkDeviceMemory vulkanColorImageMemory;
 	VkImageView vulkanColorImageView;
 
-	size_t currentFrame = 0;
 	uint32_t textureMipLevels;
 
+private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+	size_t currentFrame = 0;
 
 private:
 	void SetupSwapChain();

@@ -8,14 +8,44 @@
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\settings.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\Engine\Application.cpp">
       <Filter>Engine</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Graphic\VertexInfo.cpp">
       <Filter>Engine\Graphic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Misc\settings.cpp">
+      <Filter>Engine\Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Level\LevelManager.cpp">
+      <Filter>Engine\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Level\Level.cpp">
+      <Filter>Engine\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Level\Object.cpp">
+      <Filter>Engine\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Level\ObjectManager.cpp">
+      <Filter>Engine\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_impl_vulkan.cpp">
+      <Filter>Dependency</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_tables.cpp">
+      <Filter>Dependency</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_widgets.cpp">
+      <Filter>Dependency</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui.cpp">
+      <Filter>Dependency</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_draw.cpp">
+      <Filter>Dependency</Filter>
+    </ClCompile>
+    <ClCompile Include="include\imgui\imgui_impl_glfw.cpp">
+      <Filter>Dependency</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -25,6 +55,15 @@
     <Filter Include="Engine\Graphic">
       <UniqueIdentifier>{ac35b63d-6eb4-460e-8bbf-49d496743183}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Level">
+      <UniqueIdentifier>{027039c0-d7dc-4e89-b2ac-0f915ffc1795}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Misc">
+      <UniqueIdentifier>{e3fce082-6e65-4863-97a6-676f57d02ee7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependency">
+      <UniqueIdentifier>{2e43214e-900b-48a3-a56a-4ad8b8aafcc7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp">
@@ -32,12 +71,6 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp">
       <Filter>Engine\Graphic</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\helper.hpp">
-      <Filter>Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\settings.hpp">
-      <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\System.hpp">
       <Filter>Engine</Filter>
@@ -47,6 +80,24 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\VertexInfo.hpp">
       <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Misc\settings.hpp">
+      <Filter>Engine\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Misc\helper.hpp">
+      <Filter>Engine\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Level\LevelManager.hpp">
+      <Filter>Engine\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Level\Level.hpp">
+      <Filter>Engine\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Level\Object.hpp">
+      <Filter>Engine\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Level\ObjectManager.hpp">
+      <Filter>Engine\Level</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
