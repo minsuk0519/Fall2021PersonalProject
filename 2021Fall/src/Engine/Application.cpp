@@ -886,7 +886,6 @@ void Application::RenderGui()
 
         if (guirecreateswapchain) return;
 
-        VkSemaphore render_complete_semaphore = guivulkanWindow.FrameSemaphores[guivulkanWindow.SemaphoreIndex].RenderCompleteSemaphore;
         VkPresentInfoKHR presentinfo = {};
         presentinfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentinfo.waitSemaphoreCount = 1;
