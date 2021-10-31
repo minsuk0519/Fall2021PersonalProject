@@ -849,70 +849,58 @@ void Application::RenderGui()
         }
 
         ImGui_ImplVulkanH_Frame* fd = &guivulkanWindow.Frames[guivulkanWindow.FrameIndex];
-        {
-            err = vkWaitForFences(vulkanDevice, 1, &fd->Fence, VK_TRUE, UINT64_MAX);
+        vkWaitForFences(vulkanDevice, 1, &fd->Fence, VK_TRUE, UINT64_MAX);
+        vkResetFences(vulkanDevice, 1, &fd->Fence);
+        vkResetCommandPool(vulkanDevice, fd->CommandPool, 0);
+        VkCommandBufferBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
+        VkRenderPassBeginInfo renderpassinfo = {};
+        renderpassinfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderpassinfo.renderPass = guivulkanWindow.RenderPass;
+        renderpassinfo.framebuffer = fd->Framebuffer;
+        renderpassinfo.renderArea.extent.width = guivulkanWindow.Width;
+        renderpassinfo.renderArea.extent.height = guivulkanWindow.Height;
+        renderpassinfo.clearValueCount = 1;
+        renderpassinfo.pClearValues = &guivulkanWindow.ClearValue;
+        vkCmdBeginRenderPass(fd->CommandBuffer, &renderpassinfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            err = vkResetFences(vulkanDevice, 1, &fd->Fence);
-        }
-        {
-            err = vkResetCommandPool(vulkanDevice, fd->CommandPool, 0);
-            VkCommandBufferBeginInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-            err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
-        }
-        {
-            VkRenderPassBeginInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            info.renderPass = guivulkanWindow.RenderPass;
-            info.framebuffer = fd->Framebuffer;
-            info.renderArea.extent.width = guivulkanWindow.Width;
-            info.renderArea.extent.height = guivulkanWindow.Height;
-            info.clearValueCount = 1;
-            info.pClearValues = &guivulkanWindow.ClearValue;
-            vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-        }
-
-        // Record dear imgui primitives into command buffer
         ImGui_ImplVulkan_RenderDrawData(draw_data, fd->CommandBuffer);
 
         // Submit command buffer
         vkCmdEndRenderPass(fd->CommandBuffer);
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo submitinfo = {};
+        submitinfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitinfo.waitSemaphoreCount = 1;
+        submitinfo.pWaitSemaphores = &image_acquired_semaphore;
+        submitinfo.pWaitDstStageMask = &wait_stage;
+        submitinfo.commandBufferCount = 1;
+        submitinfo.pCommandBuffers = &fd->CommandBuffer;
+        submitinfo.signalSemaphoreCount = 1;
+        submitinfo.pSignalSemaphores = &render_complete_semaphore;
+
+        vkEndCommandBuffer(fd->CommandBuffer);
+        vkQueueSubmit(guiQueue, 1, &submitinfo, fd->Fence);
+
+        if (guirecreateswapchain) return;
+
+        VkSemaphore render_complete_semaphore = guivulkanWindow.FrameSemaphores[guivulkanWindow.SemaphoreIndex].RenderCompleteSemaphore;
+        VkPresentInfoKHR presentinfo = {};
+        presentinfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentinfo.waitSemaphoreCount = 1;
+        presentinfo.pWaitSemaphores = &render_complete_semaphore;
+        presentinfo.swapchainCount = 1;
+        presentinfo.pSwapchains = &guivulkanWindow.Swapchain;
+        presentinfo.pImageIndices = &guivulkanWindow.FrameIndex;
+        err = vkQueuePresentKHR(guiQueue, &presentinfo);
+        if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
         {
-            VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            VkSubmitInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            info.waitSemaphoreCount = 1;
-            info.pWaitSemaphores = &image_acquired_semaphore;
-            info.pWaitDstStageMask = &wait_stage;
-            info.commandBufferCount = 1;
-            info.pCommandBuffers = &fd->CommandBuffer;
-            info.signalSemaphoreCount = 1;
-            info.pSignalSemaphores = &render_complete_semaphore;
-
-            err = vkEndCommandBuffer(fd->CommandBuffer);
-            err = vkQueueSubmit(guiQueue, 1, &info, fd->Fence);
+            guirecreateswapchain = true;
+            return;
         }
-
-        {
-            if (guirecreateswapchain) return;
-
-            VkSemaphore render_complete_semaphore = guivulkanWindow.FrameSemaphores[guivulkanWindow.SemaphoreIndex].RenderCompleteSemaphore;
-            VkPresentInfoKHR info = {};
-            info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-            info.waitSemaphoreCount = 1;
-            info.pWaitSemaphores = &render_complete_semaphore;
-            info.swapchainCount = 1;
-            info.pSwapchains = &guivulkanWindow.Swapchain;
-            info.pImageIndices = &guivulkanWindow.FrameIndex;
-            err = vkQueuePresentKHR(guiQueue, &info);
-            if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
-            {
-                guirecreateswapchain = true;
-                return;
-            }
-            guivulkanWindow.SemaphoreIndex = (guivulkanWindow.SemaphoreIndex + 1) % guivulkanWindow.ImageCount;
-        }
+        guivulkanWindow.SemaphoreIndex = (guivulkanWindow.SemaphoreIndex + 1) % guivulkanWindow.ImageCount;
     }
 }
 
