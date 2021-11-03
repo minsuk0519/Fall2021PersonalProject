@@ -480,13 +480,16 @@ void Graphic::SetupSwapChain()
             vulkanColorImageView[i] = createImageView(vulkanColorImage[i], colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
             int indexMSAA = i + RENDERPASS::COLORATTACHMENT_MAX;
+            VkFormat formatMSAA = colorFormat;
+
+            if (i == RENDERPASS::NORMALATTACHMENT_MSAA) formatMSAA = VK_FORMAT_R16G16B16A16_SFLOAT;
 
             //color image should be r8g8b8a8_srgb : same as vulkanswapchainimageformat
-            createImage(Settings::windowWidth, Settings::windowHeight, 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R16G16B16A16_SFLOAT,
+            createImage(Settings::windowWidth, Settings::windowHeight, 1, VK_SAMPLE_COUNT_1_BIT, formatMSAA,
                 VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanColorImage[indexMSAA], vulkanColorImageMemory[indexMSAA]);
 
-            vulkanColorImageView[indexMSAA] = createImageView(vulkanColorImage[indexMSAA], VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+            vulkanColorImageView[indexMSAA] = createImageView(vulkanColorImage[indexMSAA], formatMSAA, VK_IMAGE_ASPECT_COLOR_BIT, 1);
         }
     }
 
@@ -513,6 +516,10 @@ void Graphic::CloseSwapChain()
         vkDestroyImageView(vulkanDevice, vulkanColorImageView[i], nullptr);
         vkDestroyImage(vulkanDevice, vulkanColorImage[i], nullptr);
         vkFreeMemory(vulkanDevice, vulkanColorImageMemory[i], nullptr);
+
+        vkDestroyImageView(vulkanDevice, vulkanColorImageView[i + RENDERPASS::COLORATTACHMENT_MAX], nullptr);
+        vkDestroyImage(vulkanDevice, vulkanColorImage[i + RENDERPASS::COLORATTACHMENT_MAX], nullptr);
+        vkFreeMemory(vulkanDevice, vulkanColorImageMemory[i + RENDERPASS::COLORATTACHMENT_MAX], nullptr);
     }
 
     vkDestroyImageView(vulkanDevice, vulkanDepthImageView, nullptr);
@@ -685,7 +692,7 @@ void Graphic::DefineDrawBehavior()
                 attachments[j] = vulkanColorImageView[j];
             }
             attachments[RENDERPASS::DEPTHATTACHMENT] = vulkanDepthImageView;
-            attachments[RENDERPASS::COLORATTACHMENT_MSAA] = vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
+            attachments[RENDERPASS::COLORATTACHMENT_MSAA] = vulkanSwapChainImageViews[i];// vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
             attachments[RENDERPASS::NORMALATTACHMENT_MSAA] = vulkanColorImageView[RENDERPASS::NORMALATTACHMENT_MSAA];
 
             VkFramebufferCreateInfo framebufferInfo{};
@@ -1093,7 +1100,7 @@ VkBuffer Graphic::createIndexBuffer(void* memory, size_t memorysize)
     vkUnmapMemory(vulkanDevice, stagingBufferMemory);
 
     createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, vulkanIndexBufferMemory);
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, buffermemory);
 
     copyBuffer(stagingBuffer, buffer, bufferSize);
 
