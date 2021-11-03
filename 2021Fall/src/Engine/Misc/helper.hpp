@@ -3,6 +3,7 @@
 //standard library
 #include <vector>
 #include <fstream>
+#include <chrono>
 
 namespace Helper
 {
@@ -25,5 +26,20 @@ namespace Helper
 		file.close();
 
 		return buffer;
+	}
+
+	//return millisecond, true->reset timer
+	static float GetDeltaTime(bool timestamp = false)
+	{
+		static auto prev = std::chrono::high_resolution_clock::now();
+		static auto current = std::chrono::high_resolution_clock::now();
+
+		current = std::chrono::high_resolution_clock::now();
+		
+		float result = (float)(std::chrono::duration<double, std::milli>(current - prev).count());
+
+		if(timestamp) prev = current;
+
+		return result;
 	}
 }

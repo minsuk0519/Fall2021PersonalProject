@@ -65,6 +65,8 @@ public:
 	bool framebufferSizeUpdate = false;
 	bool guirecreateswapchain = false;
 
+	uint32_t lastFPS = 0;
+
 //vulkan method
 private:
 	//create only one instance

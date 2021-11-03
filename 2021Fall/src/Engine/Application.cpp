@@ -14,6 +14,7 @@
 #include "Application.hpp"
 #include "Misc/settings.hpp"
 #include "System.hpp"
+#include "Misc/helper.hpp"
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -84,6 +85,19 @@ void Application::update()
 {
     while (!glfwWindowShouldClose(window) && !glfwWindowShouldClose(guiWindow)) 
     {
+        static uint32_t frameCount = 0;
+        float timestamp = Helper::GetDeltaTime(false);
+        ++frameCount;
+
+        if (timestamp > 1000.0f)
+        {
+            timestamp = Helper::GetDeltaTime(true);
+
+            lastFPS = static_cast<uint32_t>((float)frameCount * (1000.0f / timestamp));
+
+            frameCount = 0;
+        }
+
         //main window
         {
             glfwMakeContextCurrent(window);
@@ -110,6 +124,8 @@ void Application::update()
             {
                 if (ImGui::Begin("Hello"))
                 {
+                    ImGui::Text("FPS : %u", lastFPS);
+
                     ImGui::End();
                 }
             }
