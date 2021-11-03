@@ -57,6 +57,8 @@ public:
 	VkPhysicalDevice GetPhysicalDevice() const;
 
 	VkPhysicalDeviceProperties GetDeviceProperties() const;
+	VkPhysicalDeviceMemoryProperties GetMemProperties() const;
+	VkPhysicalDeviceFeatures GetDeviceFeatures() const;
 
 //member variables
 public:
@@ -110,6 +112,8 @@ private:
 	VkCommandPool vulkanCommandPool = VK_NULL_HANDLE;
 
 	VkPhysicalDeviceProperties vulkanDeviceProperties;
+	VkPhysicalDeviceMemoryProperties vulkanDeviceMemoryProperties;
+	VkPhysicalDeviceFeatures vulkanDeviceFeatures;
 
 //for Gui window
 private:

@@ -12,6 +12,7 @@ public:
 	GraphicPipeline(VkDevice device);
 
 	void init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
+	void init2(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
 	void close();
 
 	VkPipeline GetPipeline() const;

@@ -65,3 +65,36 @@ bool PosColorTexVertex::operator==(const PosColorTexVertex& rhs) const
 {
 	return ((position == rhs.position) && (color == rhs.color) && (texCoord == rhs.texCoord));
 }
+
+VkVertexInputBindingDescription PosTexVertex::getBindingDescription()
+{
+	VkVertexInputBindingDescription result{};
+
+	result.binding = 0;
+	result.stride = sizeof(PosTexVertex);
+	result.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	return result;
+}
+
+std::array<VkVertexInputAttributeDescription, 2> PosTexVertex::getAttributeDescriptions()
+{
+	std::array<VkVertexInputAttributeDescription, 2> result{};
+
+	result[0].binding = 0;
+	result[0].location = 0;
+	result[0].format = VK_FORMAT_R32G32_SFLOAT;
+	result[0].offset = offsetof(PosTexVertex, position);
+
+	result[1].binding = 0;
+	result[1].location = 1;
+	result[1].format = VK_FORMAT_R32G32_SFLOAT;
+	result[1].offset = offsetof(PosTexVertex, texCoord);
+
+	return result;
+}
+
+bool PosTexVertex::operator==(const PosTexVertex& rhs) const
+{
+	return ((position == rhs.position) && (texCoord == rhs.texCoord));
+}

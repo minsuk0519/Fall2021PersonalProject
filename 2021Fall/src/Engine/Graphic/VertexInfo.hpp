@@ -33,6 +33,18 @@ struct PosColorTexVertex
 	bool operator==(const PosColorTexVertex& rhs) const;
 };
 
+struct PosTexVertex
+{
+	glm::vec2 position;
+	glm::vec2 texCoord;
+
+	static VkVertexInputBindingDescription getBindingDescription();
+
+	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+
+	bool operator==(const PosTexVertex& rhs) const;
+};
+
 namespace std
 {
 	template<> struct hash<PosColorTexVertex>

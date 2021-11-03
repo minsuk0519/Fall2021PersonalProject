@@ -21,7 +21,7 @@ enum RENDERPASS
 
 	DEPTHATTACHMENT = COLORATTACHMENT_MAX * 2,
 	FINALIMAGE = DEPTHATTACHMENT + 1,
-	RENDERPASS_MAX = FINALIMAGE,
+	RENDERPASS_MAX = FINALIMAGE + 1,
 };
 
 class Graphic : public System
@@ -80,9 +80,12 @@ private:
 	VkImageView vulkanDepthImageView;
 	VkFormat vulkanDepthFormat;
 
-	std::array<VkImage, RENDERPASS::COLORATTACHMENT_MAX> vulkanColorImage;
-	std::array<VkDeviceMemory, RENDERPASS::COLORATTACHMENT_MAX> vulkanColorImageMemory;
-	std::array<VkImageView, RENDERPASS::COLORATTACHMENT_MAX> vulkanColorImageView;
+	std::array<VkImage, RENDERPASS::DEPTHATTACHMENT> vulkanColorImage;
+	std::array<VkDeviceMemory, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageMemory;
+	std::array<VkImageView, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageView;
+
+	std::vector<VkDeviceMemory> vulkanDeviceMemories;
+	std::vector<VkBuffer> vulkanBuffers;
 
 	uint32_t textureMipLevels;
 
@@ -96,6 +99,9 @@ private:
 	void DefineDrawBehavior();
 	void CloseSwapChain();
 	void RecreateSwapChain();
+
+	VkBuffer createVertexBuffer(void* memory, size_t memorysize);
+	VkBuffer createIndexBuffer(void* memory, size_t memorysize);
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
 		VkBuffer& buffer, VkDeviceMemory& bufferMemory);

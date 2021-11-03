@@ -70,6 +70,7 @@ void Graphic::init()
 
                 vertex.color = { 1.0f, 1.0f, 1.0f };
 
+                //remove duplicate vertices
                 if (uniqueVertices.count(vertex) == 0)
                 {
                     uniqueVertices[vertex] = static_cast<uint32_t>(vert.size());
@@ -80,48 +81,14 @@ void Graphic::init()
             }
         }
 
-        VkBuffer vertexstagingBuffer;
-        VkDeviceMemory vertexstagingBufferMemory;
-
-        VkDeviceSize vertexbufferSize = sizeof(vert[0]) * vert.size();
-        createBuffer(vertexbufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexstagingBuffer, vertexstagingBufferMemory);
-
-        void* vertexdata;
-        vkMapMemory(vulkanDevice, vertexstagingBufferMemory, 0, vertexbufferSize, 0, &vertexdata);
-        memcpy(vertexdata, vert.data(), static_cast<size_t>(vertexbufferSize));
-        vkUnmapMemory(vulkanDevice, vertexstagingBufferMemory);
-
-        createBuffer(vertexbufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanVertexBuffer, vulkanVertexBufferMemory);
-
-        copyBuffer(vertexstagingBuffer, vulkanVertexBuffer, vertexbufferSize);
-
-        vkDestroyBuffer(vulkanDevice, vertexstagingBuffer, nullptr);
-        vkFreeMemory(vulkanDevice, vertexstagingBufferMemory, nullptr);
+        //vertex
+        size_t vertexbuffermemorysize = vert.size() * sizeof(PosColorTexVertex);
+        vulkanVertexBuffer = createVertexBuffer(vert.data(), vertexbuffermemorysize);
 
 
         //index
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-
-        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void* data;
-        vkMapMemory(vulkanDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-        vkUnmapMemory(vulkanDevice, stagingBufferMemory);
-
-        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanIndexBuffer, vulkanIndexBufferMemory);
-
-        copyBuffer(stagingBuffer, vulkanIndexBuffer, bufferSize);
-
-        vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
-        vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
+        size_t indexbuffermemorysize = indices.size() * sizeof(uint32_t);
+        vulkanIndexBuffer = createIndexBuffer(indices.data(), indexbuffermemorysize);
     }
 
     //create uniform buffer
@@ -436,6 +403,11 @@ void Graphic::update(float /*dt*/)
 
 void Graphic::close()
 {
+    for (auto& deviceMem : vulkanDeviceMemories)
+    {
+        vkFreeMemory(vulkanDevice, deviceMem, nullptr);
+    }
+
     vkDestroyBuffer(vulkanDevice, vulkanIndexBuffer, nullptr);
     vkFreeMemory(vulkanDevice, vulkanIndexBufferMemory, nullptr);
 
@@ -506,6 +478,15 @@ void Graphic::SetupSwapChain()
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanColorImage[i], vulkanColorImageMemory[i]);
 
             vulkanColorImageView[i] = createImageView(vulkanColorImage[i], colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+            int indexMSAA = i + RENDERPASS::COLORATTACHMENT_MAX;
+
+            //color image should be r8g8b8a8_srgb : same as vulkanswapchainimageformat
+            createImage(Settings::windowWidth, Settings::windowHeight, 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R16G16B16A16_SFLOAT,
+                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vulkanColorImage[indexMSAA], vulkanColorImageMemory[indexMSAA]);
+
+            vulkanColorImageView[indexMSAA] = createImageView(vulkanColorImage[indexMSAA], VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, 1);
         }
     }
 
@@ -574,103 +555,115 @@ void Graphic::RecreateSwapChain()
 
 void Graphic::DefineDrawBehavior()
 {
-    std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> colorattachments;
-    std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> resolvedattachments;
-    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
     {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = vulkanSwapChainImageFormat;
-        colorAttachment.samples = vulkanMSAASamples;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> colorattachments;
+        std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> resolvedattachments;
+        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+        {
+            VkAttachmentDescription colorAttachment{};
+            colorAttachment.format = vulkanSwapChainImageFormat;
+            colorAttachment.samples = vulkanMSAASamples;
+            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentDescription colorAttachmentResolve{};
-        colorAttachmentResolve.format = vulkanSwapChainImageFormat;
-        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            VkAttachmentDescription colorAttachmentResolve{};
+            colorAttachmentResolve.format = vulkanSwapChainImageFormat;
+            colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+            colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-        colorattachments[i] = colorAttachment;
-        resolvedattachments[i] = colorAttachmentResolve;
-    }
+            colorattachments[i] = colorAttachment;
+            resolvedattachments[i] = colorAttachmentResolve;
+        }
+        VkAttachmentDescription finalAttachment{};
+        finalAttachment.format = vulkanSwapChainImageFormat;
+        finalAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        finalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        finalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        finalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        finalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        finalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        finalAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        
 
-    vulkanDepthFormat = findSupportedFormat({
-        VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
-        }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        vulkanDepthFormat = findSupportedFormat({
+            VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
+            }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = vulkanDepthFormat;
-    depthAttachment.samples = vulkanMSAASamples;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkAttachmentDescription depthAttachment{};
+        depthAttachment.format = vulkanDepthFormat;
+        depthAttachment.samples = vulkanMSAASamples;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> colorAttachmentRefs{};
-    std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> resolvecolorAttachmentRefs{};
-    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
-    {
-        VkAttachmentReference colorAttachmentRef;
-        colorAttachmentRef.attachment = i;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> colorAttachmentRefs{};
+        std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> resolvecolorAttachmentRefs{};
+        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+        {
+            VkAttachmentReference colorAttachmentRef;
+            colorAttachmentRef.attachment = i;
+            colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference colorAttachmentResolveRef{};
-        colorAttachmentResolveRef.attachment = i + RENDERPASS::COLORATTACHMENT_MAX;
-        colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            VkAttachmentReference colorAttachmentResolveRef{};
+            colorAttachmentResolveRef.attachment = i + RENDERPASS::COLORATTACHMENT_MAX;
+            colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        colorAttachmentRefs[i] = colorAttachmentRef;
-        resolvecolorAttachmentRefs[i] = colorAttachmentResolveRef;
-    }
+            colorAttachmentRefs[i] = colorAttachmentRef;
+            resolvecolorAttachmentRefs[i] = colorAttachmentResolveRef;
+        }
 
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = RENDERPASS::DEPTHATTACHMENT;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        VkAttachmentReference depthAttachmentRef{};
+        depthAttachmentRef.attachment = RENDERPASS::DEPTHATTACHMENT;
+        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        VkSubpassDependency dependency{};
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
-    subpass.pColorAttachments = colorAttachmentRefs.data();
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-    subpass.pResolveAttachments = resolvecolorAttachmentRefs.data();
+        VkSubpassDescription subpass{};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
+        subpass.pColorAttachments = colorAttachmentRefs.data();
+        subpass.pDepthStencilAttachment = &depthAttachmentRef;
+        subpass.pResolveAttachments = resolvecolorAttachmentRefs.data();
 
-    std::array<VkAttachmentDescription, RENDERPASS::RENDERPASS_MAX> attachments;
-    for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
-    {
-        attachments[i] = colorattachments[i];
-        attachments[i + RENDERPASS::COLORATTACHMENT_MAX] = resolvedattachments[i];
-    }
-    attachments[RENDERPASS::DEPTHATTACHMENT] = depthAttachment;
+        std::array<VkAttachmentDescription, RENDERPASS::RENDERPASS_MAX> attachments;
+        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
+        {
+            attachments[i] = colorattachments[i];
+            attachments[i + RENDERPASS::COLORATTACHMENT_MAX] = resolvedattachments[i];
+        }
+        attachments[RENDERPASS::DEPTHATTACHMENT] = depthAttachment;
 
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
+        VkRenderPassCreateInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        renderPassInfo.pAttachments = attachments.data();
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpass;
+        renderPassInfo.dependencyCount = 1;
+        renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(vulkanDevice, &renderPassInfo, nullptr, &vulkanRenderPass) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create render pass!");
+        if (vkCreateRenderPass(vulkanDevice, &renderPassInfo, nullptr, &vulkanRenderPass) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create render pass!");
+        }
     }
 
     //create graphic pipeline
@@ -682,6 +675,7 @@ void Graphic::DefineDrawBehavior()
     //create framebuffer
     {
         vulkanSwapChainFramebuffers.resize(vulkanSwapChainImageViews.size());
+        //vulkanSwapChainFramebuffers.resize(1);
 
         for (size_t i = 0; i < vulkanSwapChainImageViews.size(); ++i)
         {
@@ -691,8 +685,8 @@ void Graphic::DefineDrawBehavior()
                 attachments[j] = vulkanColorImageView[j];
             }
             attachments[RENDERPASS::DEPTHATTACHMENT] = vulkanDepthImageView;
-            attachments[RENDERPASS::COLORATTACHMENT_MSAA] = vulkanSwapChainImageViews[i];
-            attachments[RENDERPASS::NORMALATTACHMENT_MSAA] = vulkanSwapChainImageViews[i];
+            attachments[RENDERPASS::COLORATTACHMENT_MSAA] = vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
+            attachments[RENDERPASS::NORMALATTACHMENT_MSAA] = vulkanColorImageView[RENDERPASS::NORMALATTACHMENT_MSAA];
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -780,6 +774,246 @@ void Graphic::DefineDrawBehavior()
             }
         }
     }
+
+    ////new draw
+    //{
+    //    //descriptorpool
+    //    VkDescriptorPool descriptorPool;
+    //    {
+    //        std::array<VkDescriptorPoolSize, 1> poolSizes{};
+    //        poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //        poolSizes[0].descriptorCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+    //        VkDescriptorPoolCreateInfo poolInfo{};
+    //        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    //        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    //        poolInfo.pPoolSizes = poolSizes.data();
+    //        poolInfo.maxSets = static_cast<uint32_t>(vulkanSwapChainImages.size());
+
+
+    //        if (vkCreateDescriptorPool(vulkanDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+    //        {
+    //            throw std::runtime_error("failed to create descriptor pool!");
+    //        }
+    //    }
+
+    //    //descriptor
+    //    VkDescriptorSetLayout descriptorsetlayout;
+    //    std::vector<VkDescriptorSet> descriptorsets;
+    //    {
+    //        VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    //        samplerLayoutBinding.binding = 0;
+    //        samplerLayoutBinding.descriptorCount = 1;
+    //        samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    //        samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    //        samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+    //        std::array<VkDescriptorSetLayoutBinding, 1> bindings = { samplerLayoutBinding };
+
+    //        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    //        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    //        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    //        layoutInfo.pBindings = bindings.data();
+
+
+    //        if (vkCreateDescriptorSetLayout(vulkanDevice, &layoutInfo, nullptr, &descriptorsetlayout) != VK_SUCCESS)
+    //        {
+    //            throw std::runtime_error("failed to create descriptor set layout!");
+    //        }
+
+    //        std::vector<VkDescriptorSetLayout> layouts(vulkanSwapChainImages.size(), descriptorsetlayout);
+    //        VkDescriptorSetAllocateInfo allocInfo{};
+    //        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    //        allocInfo.descriptorPool = descriptorPool;
+    //        allocInfo.descriptorSetCount = static_cast<uint32_t>(vulkanSwapChainImages.size());
+    //        allocInfo.pSetLayouts = layouts.data();
+
+    //        descriptorsets.resize(vulkanSwapChainImages.size());
+    //        if (vkAllocateDescriptorSets(vulkanDevice, &allocInfo, descriptorsets.data()) != VK_SUCCESS)
+    //        {
+    //            throw std::runtime_error("failed to allocate descriptor sets!");
+    //        }
+
+    //        for (size_t i = 0; i < vulkanSwapChainImages.size(); ++i)
+    //        {
+    //            VkDescriptorImageInfo imageInfo{};
+    //            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //            imageInfo.imageView = vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
+
+    //            std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+    //            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //            descriptorWrites[0].dstSet = descriptorsets[i];
+    //            descriptorWrites[0].dstBinding = 0;
+    //            descriptorWrites[0].dstArrayElement = 0;
+    //            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    //            descriptorWrites[0].descriptorCount = 1;
+    //            descriptorWrites[0].pBufferInfo = nullptr;
+    //            descriptorWrites[0].pImageInfo = &imageInfo;
+    //            descriptorWrites[0].pTexelBufferView = nullptr;
+
+    //            vkUpdateDescriptorSets(vulkanDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    //        }
+    //    }
+
+    //    VkAttachmentDescription colorAttachmentResolve{};
+    //    colorAttachmentResolve.format = vulkanSwapChainImageFormat;
+    //    colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+    //    colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    //    colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    //    colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    //    colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    //    colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    //    colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    //    VkAttachmentReference colorAttachmentResolveRef{};
+    //    colorAttachmentResolveRef.attachment = 0;
+    //    colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    //    VkSubpassDependency dependency{};
+    //    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    //    dependency.dstSubpass = 0;
+    //    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    //    dependency.srcAccessMask = 0;
+    //    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    //    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    //    VkSubpassDescription subpass{};
+    //    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    //    subpass.colorAttachmentCount = 1;
+    //    subpass.pColorAttachments = &colorAttachmentResolveRef;
+
+    //    VkRenderPassCreateInfo renderPassInfo{};
+    //    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    //    renderPassInfo.attachmentCount = 1;
+    //    renderPassInfo.pAttachments = &colorAttachmentResolve;
+    //    renderPassInfo.subpassCount = 1;
+    //    renderPassInfo.pSubpasses = &subpass;
+    //    renderPassInfo.dependencyCount = 1;
+    //    renderPassInfo.pDependencies = &dependency;
+
+    //    VkRenderPass renderpass;
+
+    //    if (vkCreateRenderPass(vulkanDevice, &renderPassInfo, nullptr, &renderpass) != VK_SUCCESS)
+    //    {
+    //        throw std::runtime_error("failed to create render pass!");
+    //    }
+
+    //    GraphicPipeline* graphicPipeline2 = new GraphicPipeline(vulkanDevice);
+    //    {
+    //        graphicPipeline2->init2(renderpass, descriptorsetlayout, vulkanMSAASamples);
+    //    }
+
+    //    //create framebuffer
+    //    {
+    //        vulkanSwapChainFramebuffers.resize(vulkanSwapChainImageViews.size());
+
+    //        for (size_t i = 0; i < vulkanSwapChainImageViews.size(); ++i)
+    //        {
+    //            std::array<VkImageView, 1> attachments = { vulkanSwapChainImageViews[i] };
+
+    //            VkFramebufferCreateInfo framebufferInfo{};
+    //            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //            framebufferInfo.renderPass = vulkanRenderPass;
+    //            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    //            framebufferInfo.pAttachments = attachments.data();
+    //            framebufferInfo.width = Settings::windowWidth;
+    //            framebufferInfo.height = Settings::windowHeight;
+    //            framebufferInfo.layers = 1;
+
+    //            if (vkCreateFramebuffer(vulkanDevice, &framebufferInfo, nullptr, &vulkanSwapChainFramebuffers[i]) != VK_SUCCESS)
+    //            {
+    //                throw std::runtime_error("failed to create framebuffer!");
+    //            }
+    //        }
+    //    }
+
+    //    std::vector<PosTexVertex> vert = {
+    //        {{-0.5f, -0.5f}, {0.0f, 0.0f}},
+    //        {{0.5f, -0.5f}, {1.0f, 0.0f}},
+    //        {{0.5f, 0.5f}, {1.0f, 1.0f}},
+    //        {{-0.5f, 0.5f}, {0.0f, 1.0f}}
+    //    };
+
+    //    std::vector<uint16_t> indices = {
+    //        0, 1, 2, 2, 3, 0
+    //    };
+
+    //    //vertex
+    //    size_t vertexbuffermemorysize = vert.size() * sizeof(PosColorTexVertex);
+    //    vulkanVertexBuffer = createVertexBuffer(vert.data(), vertexbuffermemorysize);
+
+
+    //    //index
+    //    size_t indexbuffermemorysize = indices.size() * sizeof(uint32_t);
+    //    vulkanIndexBuffer = createIndexBuffer(indices.data(), indexbuffermemorysize);
+
+    //    //create command buffer
+    //    {
+    //        vulkanCommandBuffers.resize(vulkanSwapChainFramebuffers.size());
+
+    //        VkCommandBufferAllocateInfo allocInfo{};
+    //        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    //        allocInfo.commandPool = application->GetCommandPool();
+    //        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    //        allocInfo.commandBufferCount = (uint32_t)vulkanCommandBuffers.size();
+
+    //        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
+    //        {
+    //            throw std::runtime_error("failed to allocate command buffers!");
+    //        }
+
+    //        for (size_t i = 0; i < vulkanCommandBuffers.size(); ++i)
+    //        {
+    //            VkCommandBufferBeginInfo beginInfo{};
+    //            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    //            beginInfo.flags = 0;
+    //            beginInfo.pInheritanceInfo = nullptr;
+
+    //            if (vkBeginCommandBuffer(vulkanCommandBuffers[i], &beginInfo) != VK_SUCCESS)
+    //            {
+    //                throw std::runtime_error("failed to begin recording command buffer!");
+    //            }
+
+    //            VkRenderPassBeginInfo renderPassInfo{};
+    //            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    //            renderPassInfo.renderPass = renderpass;
+    //            renderPassInfo.framebuffer = vulkanSwapChainFramebuffers[i];
+
+    //            renderPassInfo.renderArea.offset = { 0,0 };
+    //            renderPassInfo.renderArea.extent = { Settings::windowWidth, Settings::windowHeight };
+
+    //            std::array<VkClearValue, 1> clearValues = {};
+    //            clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+
+    //            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    //            renderPassInfo.pClearValues = clearValues.data();
+
+    //            vkCmdBeginRenderPass(vulkanCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    //            vkCmdBindPipeline(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+    //                graphicPipeline2->GetPipeline());
+
+    //            VkBuffer vertexBuffers[] = { vulkanVertexBuffer };
+    //            VkDeviceSize offsets[] = { 0 };
+    //            vkCmdBindVertexBuffers(vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+    //            //use 32 byte uint for using more than 65535 byte indices
+    //            vkCmdBindIndexBuffer(vulkanCommandBuffers[i], vulkanIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+    //            vkCmdBindDescriptorSets(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipeline2->GetPipelinLayout(),
+    //                0, 1, &descriptorsets[i], 0, nullptr);
+
+    //            vkCmdDrawIndexed(vulkanCommandBuffers[i], 11484, 1, 0, 0, 0);
+
+    //            vkCmdEndRenderPass(vulkanCommandBuffers[i]);
+
+    //            if (vkEndCommandBuffer(vulkanCommandBuffers[i]) != VK_SUCCESS)
+    //            {
+    //                throw std::runtime_error("failed to recored command buffer!");
+    //            }
+    //        }
+    //    }
+    //}
 }
 
 void Graphic::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
@@ -811,6 +1045,66 @@ void Graphic::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemory
     vkBindBufferMemory(vulkanDevice, buffer, bufferMemory, 0);
 }
 
+VkBuffer Graphic::createVertexBuffer(void* memory, size_t memorysize)
+{
+    VkDeviceMemory buffermemory;
+    VkBuffer buffer;
+
+    VkBuffer vertexstagingBuffer;
+    VkDeviceMemory vertexstagingBufferMemory;
+
+    VkDeviceSize vertexbufferSize = memorysize;
+    createBuffer(vertexbufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, vertexstagingBuffer, vertexstagingBufferMemory);
+
+    void* vertexdata;
+    vkMapMemory(vulkanDevice, vertexstagingBufferMemory, 0, vertexbufferSize, 0, &vertexdata);
+    memcpy(vertexdata, memory, memorysize);
+    vkUnmapMemory(vulkanDevice, vertexstagingBufferMemory);
+
+    createBuffer(vertexbufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, buffermemory);
+
+    copyBuffer(vertexstagingBuffer, buffer, vertexbufferSize);
+
+    vkDestroyBuffer(vulkanDevice, vertexstagingBuffer, nullptr);
+    vkFreeMemory(vulkanDevice, vertexstagingBufferMemory, nullptr);
+
+    vulkanDeviceMemories.push_back(buffermemory);
+
+    return buffer;
+}
+
+VkBuffer Graphic::createIndexBuffer(void* memory, size_t memorysize)
+{
+    VkDeviceMemory buffermemory;
+    VkBuffer buffer;
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    VkDeviceSize bufferSize = memorysize;
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(vulkanDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, memory, memorysize);
+    vkUnmapMemory(vulkanDevice, stagingBufferMemory);
+
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, vulkanIndexBufferMemory);
+
+    copyBuffer(stagingBuffer, buffer, bufferSize);
+
+    vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
+    vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
+
+    vulkanDeviceMemories.push_back(buffermemory);
+
+    return buffer;
+}
+
 void Graphic::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -824,8 +1118,7 @@ void Graphic::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize si
 
 uint32_t Graphic::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(application->GetPhysicalDevice(), &memProperties);
+    VkPhysicalDeviceMemoryProperties memProperties = application->GetMemProperties();
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
     {

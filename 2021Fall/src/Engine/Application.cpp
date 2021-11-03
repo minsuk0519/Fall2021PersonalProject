@@ -191,6 +191,7 @@ void Application::initVulkan()
         }
 
         vkGetPhysicalDeviceProperties(vulkanPhysicalDevice, &vulkanDeviceProperties);
+        vkGetPhysicalDeviceMemoryProperties(vulkanPhysicalDevice, &vulkanDeviceMemoryProperties);
     }
 
     //logical device
@@ -427,10 +428,9 @@ bool Application::isDeviceSuitable(VkPhysicalDevice device)
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+    vkGetPhysicalDeviceFeatures(device, &vulkanDeviceFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+    return indices.isComplete() && extensionsSupported && swapChainAdequate && vulkanDeviceFeatures.samplerAnisotropy;
 }
 
 bool Application::checkDeviceExtensionSupport(VkPhysicalDevice device)
@@ -719,6 +719,16 @@ VkPhysicalDevice Application::GetPhysicalDevice() const
 VkPhysicalDeviceProperties Application::GetDeviceProperties() const
 {
     return vulkanDeviceProperties;
+}
+
+VkPhysicalDeviceMemoryProperties Application::GetMemProperties() const
+{
+    return vulkanDeviceMemoryProperties;
+}
+
+VkPhysicalDeviceFeatures Application::GetDeviceFeatures() const
+{
+    return vulkanDeviceFeatures;
 }
 
 void Application::InitGui()
