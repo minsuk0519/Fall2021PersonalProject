@@ -93,7 +93,7 @@ void Renderpass::createFramebuffer()
         imageAttachments[i] = attachments[i].imageView;
 
         if(attachments[i].type == AttachmentType::ATTACHMENT_DEPTH) clearValues[i].depthStencil = { 1.0f, 0 };
-        else  clearValues[i].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+        else clearValues[i].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
     }
 
     VkFramebufferCreateInfo framebufferInfo{};

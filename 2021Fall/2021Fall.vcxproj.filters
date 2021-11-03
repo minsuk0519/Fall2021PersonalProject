@@ -50,6 +50,9 @@
     <ClCompile Include="src\Engine\Graphic\Renderpass.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\DescriptorSet.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -103,6 +106,9 @@
       <Filter>Engine\Level</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\Renderpass.hpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\DescriptorSet.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>

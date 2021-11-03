@@ -25,6 +25,7 @@ enum RENDERPASS
 };
 
 class Renderpass;
+class DescriptorSet;
 
 class Graphic : public System
 {
@@ -97,7 +98,7 @@ private:
 	uint32_t textureMipLevels;
 
 	Renderpass* renderpass = nullptr;
-
+	DescriptorSet* descriptorSet = nullptr;
 
 private:
 	void SetupSwapChain();

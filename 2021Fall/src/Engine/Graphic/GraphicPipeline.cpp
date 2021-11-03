@@ -138,7 +138,6 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 
-
 	for (auto& shaderstage : shaderStages)
 	{
 		vkDestroyShaderModule(vulkanDevice, shaderstage.module, nullptr);
