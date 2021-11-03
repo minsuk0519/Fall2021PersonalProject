@@ -101,6 +101,7 @@ private:
 private:
 	void InitGui();
 	void RenderGui();
+	void UpdateGui();
 
 //vulkan variables
 private:

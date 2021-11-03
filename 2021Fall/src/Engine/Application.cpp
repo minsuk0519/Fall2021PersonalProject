@@ -121,14 +121,7 @@ void Application::update()
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            {
-                if (ImGui::Begin("Hello"))
-                {
-                    ImGui::Text("FPS : %u", lastFPS);
-
-                    ImGui::End();
-                }
-            }
+            UpdateGui();
 
             RenderGui();
         }
@@ -716,7 +709,6 @@ VkCommandPool Application::GetCommandPool() const
     return vulkanCommandPool;
 }
 
-
 VkQueue Application::GetGraphicQueue() const
 {
     return vulkanGraphicsQueue;
@@ -749,7 +741,7 @@ VkPhysicalDeviceFeatures Application::GetDeviceFeatures() const
 
 void Application::InitGui()
 {
-    //create surfac
+    //create surface
     CreateSurface(guiWindow, guiSurface);
 
     guivulkanWindow.Surface = guiSurface;
@@ -927,5 +919,15 @@ void Application::RenderGui()
         }
         guivulkanWindow.SemaphoreIndex = (guivulkanWindow.SemaphoreIndex + 1) % guivulkanWindow.ImageCount;
     }
+}
+
+void Application::UpdateGui()
+{    
+    if (ImGui::Begin("Hello"))
+    {
+        ImGui::Text("FPS : %u", lastFPS);
+
+        ImGui::End();
+    }   
 }
 

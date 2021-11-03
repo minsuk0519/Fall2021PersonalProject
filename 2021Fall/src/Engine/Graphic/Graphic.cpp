@@ -2,6 +2,7 @@
 #include "Engine/Misc/settings.hpp"
 #include "Engine/Application.hpp"
 #include "VertexInfo.hpp"
+#include "Renderpass.hpp"
 
 //standard library
 #include <stdexcept>
@@ -526,17 +527,15 @@ void Graphic::CloseSwapChain()
     vkDestroyImage(vulkanDevice, vulkanDepthImage, nullptr);
     vkFreeMemory(vulkanDevice, vulkanDepthImageMemory, nullptr);
 
-    for (auto frameBuffer : vulkanSwapChainFramebuffers)
-    {
-        vkDestroyFramebuffer(vulkanDevice, frameBuffer, nullptr);
-    }
-
     vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
+
+    renderpass->close();
+    delete renderpass;
 
     graphicPipeline->close();
     delete graphicPipeline;
 
-    vkDestroyRenderPass(vulkanDevice, vulkanRenderPass, nullptr);
+    //vkDestroyRenderPass(vulkanDevice, vulkanRenderPass, nullptr);
 
     for (auto imageView : vulkanSwapChainImageViews)
     {
@@ -563,46 +562,28 @@ void Graphic::RecreateSwapChain()
 void Graphic::DefineDrawBehavior()
 {
     {
-        std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> colorattachments;
-        std::array<VkAttachmentDescription, RENDERPASS::COLORATTACHMENT_MAX> resolvedattachments;
-        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
-        {
-            VkAttachmentDescription colorAttachment{};
-            colorAttachment.format = vulkanSwapChainImageFormat;
-            colorAttachment.samples = vulkanMSAASamples;
-            colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-            colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = vulkanSwapChainImageFormat;
+        colorAttachment.samples = vulkanMSAASamples;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            VkAttachmentDescription colorAttachmentResolve{};
-            colorAttachmentResolve.format = vulkanSwapChainImageFormat;
-            colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-            colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-            colorattachments[i] = colorAttachment;
-            resolvedattachments[i] = colorAttachmentResolve;
-        }
-        VkAttachmentDescription finalAttachment{};
-        finalAttachment.format = vulkanSwapChainImageFormat;
-        finalAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        finalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        finalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        finalAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        finalAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        finalAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        finalAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        
+        VkAttachmentDescription colorAttachmentResolve{};
+        colorAttachmentResolve.format = vulkanSwapChainImageFormat;
+        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         vulkanDepthFormat = findSupportedFormat({
-            VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
+    VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
             }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
         VkAttachmentDescription depthAttachment{};
@@ -615,105 +596,63 @@ void Graphic::DefineDrawBehavior()
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> colorAttachmentRefs{};
-        std::array<VkAttachmentReference, RENDERPASS::COLORATTACHMENT_MAX> resolvecolorAttachmentRefs{};
-        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
-        {
-            VkAttachmentReference colorAttachmentRef;
-            colorAttachmentRef.attachment = i;
-            colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        renderpass = new Renderpass(vulkanDevice);
+        Renderpass::Attachment attach;
+        attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
+        attach.attachmentDescription = colorAttachment;
+        attach.bindLocation = 0;
+        attach.imageView = vulkanColorImageView[0];
+        renderpass->addAttachment(attach);
 
-            VkAttachmentReference colorAttachmentResolveRef{};
-            colorAttachmentResolveRef.attachment = i + RENDERPASS::COLORATTACHMENT_MAX;
-            colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        attach.bindLocation = 1;
+        attach.imageView = vulkanColorImageView[1];
+        renderpass->addAttachment(attach);
 
-            colorAttachmentRefs[i] = colorAttachmentRef;
-            resolvecolorAttachmentRefs[i] = colorAttachmentResolveRef;
-        }
+        attach.bindLocation = 2;
+        attach.imageView = vulkanColorImageView[2];
+        renderpass->addAttachment(attach);
 
-        VkAttachmentReference depthAttachmentRef{};
-        depthAttachmentRef.attachment = RENDERPASS::DEPTHATTACHMENT;
-        depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attach.attachmentDescription = colorAttachmentResolve;
+        attach.type = Renderpass::AttachmentType::ATTACHMENT_RESOLVE;
+        attach.bindLocation = 3;
+        attach.imageView = vulkanSwapChainImageViews[0];
+        renderpass->addAttachment(attach);
 
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        attach.bindLocation = 4;
+        attach.imageView = vulkanSwapChainImageViews[1];
+        renderpass->addAttachment(attach);
 
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
-        subpass.pColorAttachments = colorAttachmentRefs.data();
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        subpass.pResolveAttachments = resolvecolorAttachmentRefs.data();
+        attach.bindLocation = 5;
+        attach.imageView = vulkanSwapChainImageViews[2];
+        renderpass->addAttachment(attach);
 
-        std::array<VkAttachmentDescription, RENDERPASS::RENDERPASS_MAX> attachments;
-        for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
-        {
-            attachments[i] = colorattachments[i];
-            attachments[i + RENDERPASS::COLORATTACHMENT_MAX] = resolvedattachments[i];
-        }
-        attachments[RENDERPASS::DEPTHATTACHMENT] = depthAttachment;
+        attach.attachmentDescription = depthAttachment;
+        attach.type = Renderpass::AttachmentType::ATTACHMENT_DEPTH;
+        attach.bindLocation = 6;
+        attach.imageView = vulkanDepthImageView;
+        renderpass->addAttachment(attach);
 
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        if (vkCreateRenderPass(vulkanDevice, &renderPassInfo, nullptr, &vulkanRenderPass) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create render pass!");
-        }
+        renderpass->createRenderPass();
     }
 
     //create graphic pipeline
     {
         graphicPipeline = new GraphicPipeline(vulkanDevice);
-        graphicPipeline->init(vulkanRenderPass, vulkanDescriptorSetLayout, vulkanMSAASamples);
+
+        graphicPipeline->AddShaderStages("data/shaders/baserendervert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+        graphicPipeline->AddShaderStages("data/shaders/baserenderfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+        graphicPipeline->init(renderpass->getRenderpass(), vulkanDescriptorSetLayout, vulkanMSAASamples);
     }
 
     //create framebuffer
     {
-        vulkanSwapChainFramebuffers.resize(vulkanSwapChainImageViews.size());
-        //vulkanSwapChainFramebuffers.resize(1);
-
-        for (size_t i = 0; i < vulkanSwapChainImageViews.size(); ++i)
-        {
-            std::array<VkImageView, RENDERPASS::RENDERPASS_MAX> attachments;
-            for(int j = 0; j < RENDERPASS::COLORATTACHMENT_MAX; ++j)
-            {
-                attachments[j] = vulkanColorImageView[j];
-            }
-            attachments[RENDERPASS::DEPTHATTACHMENT] = vulkanDepthImageView;
-            attachments[RENDERPASS::COLORATTACHMENT_MSAA] = vulkanSwapChainImageViews[i];// vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
-            attachments[RENDERPASS::NORMALATTACHMENT_MSAA] = vulkanColorImageView[RENDERPASS::NORMALATTACHMENT_MSAA];
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = vulkanRenderPass;
-            framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = Settings::windowWidth;
-            framebufferInfo.height = Settings::windowHeight;
-            framebufferInfo.layers = 1;            
-
-            if (vkCreateFramebuffer(vulkanDevice, &framebufferInfo, nullptr, &vulkanSwapChainFramebuffers[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create framebuffer!");
-            }
-        }
+        renderpass->createFramebuffer();
     }
 
     //create command buffer
     {
-        vulkanCommandBuffers.resize(vulkanSwapChainFramebuffers.size());
+        vulkanCommandBuffers.resize(vulkanSwapChainImages.size());
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -738,25 +677,7 @@ void Graphic::DefineDrawBehavior()
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
 
-            VkRenderPassBeginInfo renderPassInfo{};
-            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = vulkanRenderPass;
-            renderPassInfo.framebuffer = vulkanSwapChainFramebuffers[i];
-
-            renderPassInfo.renderArea.offset = { 0,0 };
-            renderPassInfo.renderArea.extent = { Settings::windowWidth, Settings::windowHeight };
-
-            std::array<VkClearValue, RENDERPASS::RENDERPASS_MAX> clearValues = {};
-            for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
-            {
-                clearValues[i].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-            }
-            clearValues[RENDERPASS::DEPTHATTACHMENT].depthStencil = { 1.0f, 0 };
-
-            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassInfo.pClearValues = clearValues.data();
-
-            vkCmdBeginRenderPass(vulkanCommandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            renderpass->beginRenderpass(vulkanCommandBuffers[i]);
 
             vkCmdBindPipeline(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());

@@ -47,6 +47,9 @@
     <ClCompile Include="include\imgui\imgui_impl_glfw.cpp">
       <Filter>Dependency</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Renderpass.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -98,6 +101,9 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Level\ObjectManager.hpp">
       <Filter>Engine\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Renderpass.hpp">
+      <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

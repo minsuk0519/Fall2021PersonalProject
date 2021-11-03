@@ -13,16 +13,18 @@ enum RENDERPASS
 {
 	COLORATTACHMENT = 0,
 	NORMALATTACHMENT,
-	//POSITIONATTACHMENT,
+	POSITIONATTACHMENT,
 	COLORATTACHMENT_MAX,
 	COLORATTACHMENT_MSAA = COLORATTACHMENT + COLORATTACHMENT_MAX,
 	NORMALATTACHMENT_MSAA = NORMALATTACHMENT + COLORATTACHMENT_MAX,
-	//POSITIONATTACHMENT_MSAA = POSITIONATTACHMENT + COLORATTACHMENT_MAX,
+	POSITIONATTACHMENT_MSAA = POSITIONATTACHMENT + COLORATTACHMENT_MAX,
 
 	DEPTHATTACHMENT = COLORATTACHMENT_MAX * 2,
 	FINALIMAGE = DEPTHATTACHMENT + 1,
 	RENDERPASS_MAX = FINALIMAGE,
 };
+
+class Renderpass;
 
 class Graphic : public System
 {
@@ -35,13 +37,11 @@ public:
 	~Graphic() override;
 
 private:
-	GraphicPipeline* graphicPipeline = nullptr;
-
-	VkRenderPass vulkanRenderPass;
+	//VkRenderPass vulkanRenderPass;
 
 	std::vector<VkCommandBuffer> vulkanCommandBuffers;
 
-	std::vector<VkFramebuffer> vulkanSwapChainFramebuffers;
+	//std::vector<VkFramebuffer> vulkanSwapChainFramebuffers;
 	std::vector<VkSemaphore> vulkanImageAvailableSemaphores;
 	std::vector<VkSemaphore> vulkanRenderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
@@ -87,12 +87,17 @@ private:
 	std::vector<VkDeviceMemory> vulkanDeviceMemories;
 	std::vector<VkBuffer> vulkanBuffers;
 
-	uint32_t textureMipLevels;
-
 private:
+	GraphicPipeline* graphicPipeline = nullptr;
+
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 	size_t currentFrame = 0;
+
+	uint32_t textureMipLevels;
+
+	Renderpass* renderpass = nullptr;
+
 
 private:
 	void SetupSwapChain();

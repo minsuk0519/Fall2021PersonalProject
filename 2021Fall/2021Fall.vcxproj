@@ -29,6 +29,7 @@
     <ClCompile Include="src\Engine\Application.cpp" />
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp" />
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp" />
+    <ClCompile Include="src\Engine\Graphic\Renderpass.cpp" />
     <ClCompile Include="src\Engine\Graphic\VertexInfo.cpp" />
     <ClCompile Include="src\Engine\Level\Level.cpp" />
     <ClCompile Include="src\Engine\Level\LevelManager.cpp" />
@@ -40,6 +41,7 @@
     <ClInclude Include="src\Engine\Application.hpp" />
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp" />
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp" />
+    <ClInclude Include="src\Engine\Graphic\Renderpass.hpp" />
     <ClInclude Include="src\Engine\Graphic\VertexInfo.hpp" />
     <ClInclude Include="src\Engine\Level\Level.hpp" />
     <ClInclude Include="src\Engine\Level\LevelManager.hpp" />

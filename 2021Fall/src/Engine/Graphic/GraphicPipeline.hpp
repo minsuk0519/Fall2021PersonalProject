@@ -12,11 +12,12 @@ public:
 	GraphicPipeline(VkDevice device);
 
 	void init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
-	void init2(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples);
 	void close();
 
 	VkPipeline GetPipeline() const;
 	VkPipelineLayout GetPipelinLayout() const;
+
+	void AddShaderStages(const char* shaderpath, VkShaderStageFlagBits flag);
 private:
 	VkDevice vulkanDevice;
 
@@ -24,4 +25,6 @@ private:
 	VkPipeline vulkanPipeline;
 
 	VkShaderModule CreatevulkanShaderModule(const std::vector<char>& code);
+
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 };
