@@ -93,7 +93,7 @@ void Application::update()
         {
             timestamp = Helper::GetDeltaTime(true);
 
-            uint32_t lastFPS = static_cast<uint32_t>((float)frameCount * (1000.0f / timestamp));
+            lastFPS = static_cast<uint32_t>((float)frameCount * (1000.0f / timestamp));
 
             frameCount = 0;
         }
@@ -124,6 +124,8 @@ void Application::update()
             {
                 if (ImGui::Begin("Hello"))
                 {
+                    ImGui::Text("FPS : %u", lastFPS);
+
                     ImGui::End();
                 }
             }
