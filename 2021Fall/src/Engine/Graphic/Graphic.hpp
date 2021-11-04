@@ -26,6 +26,7 @@ enum RENDERPASS
 
 class Renderpass;
 class DescriptorSet;
+class Buffer;
 
 class Graphic : public System
 {
@@ -38,11 +39,7 @@ public:
 	~Graphic() override;
 
 private:
-	//VkRenderPass vulkanRenderPass;
-
 	std::vector<VkCommandBuffer> vulkanCommandBuffers;
-
-	//std::vector<VkFramebuffer> vulkanSwapChainFramebuffers;
 	std::vector<VkSemaphore> vulkanImageAvailableSemaphores;
 	std::vector<VkSemaphore> vulkanRenderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
@@ -57,19 +54,6 @@ private:
 	std::vector<VkImage> vulkanSwapChainImages;
 
 	VkExtent2D vulkanSwapChainExtent;
-
-	VkBuffer vulkanVertexBuffer;
-	VkDeviceMemory vulkanVertexBufferMemory;
-
-	VkBuffer vulkanIndexBuffer;
-	VkDeviceMemory vulkanIndexBufferMemory;
-
-	std::vector<VkBuffer> vulkanUniformBuffers;
-	std::vector<VkDeviceMemory> vulkanUniformBuffersMemory;
-
-	VkDescriptorSetLayout vulkanDescriptorSetLayout;
-	VkDescriptorPool vulkanDescriptorPool;
-	std::vector<VkDescriptorSet> vulkanDescriptorSets;
 
 	VkImage vulkanTextureImage;
 	VkDeviceMemory vulkanTextureImageMemory;
@@ -89,16 +73,21 @@ private:
 	std::vector<VkBuffer> vulkanBuffers;
 
 private:
-	GraphicPipeline* graphicPipeline = nullptr;
-
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
 	size_t currentFrame = 0;
 
 	uint32_t textureMipLevels;
 
+	GraphicPipeline* graphicPipeline = nullptr;
 	Renderpass* renderpass = nullptr;
 	DescriptorSet* descriptorSet = nullptr;
+
+	Renderpass* postrenderpass = nullptr;
+	DescriptorSet* postdescriptorSet = nullptr;
+	GraphicPipeline* postgraphicPipeline = nullptr;
+
+	std::vector<Buffer*> buffers;
 
 private:
 	void SetupSwapChain();
@@ -106,29 +95,9 @@ private:
 	void CloseSwapChain();
 	void RecreateSwapChain();
 
-	VkBuffer createVertexBuffer(void* memory, size_t memorysize);
-	VkBuffer createIndexBuffer(void* memory, size_t memorysize);
-
-	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-		VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
-
-	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
-	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
-		VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-
-	VkCommandBuffer beginSingleTimeCommands();
-	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
-	void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
-
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path);
-	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
 };

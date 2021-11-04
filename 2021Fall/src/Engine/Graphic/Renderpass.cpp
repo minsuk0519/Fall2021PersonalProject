@@ -17,6 +17,7 @@ void Renderpass::createRenderPass()
     std::vector<VkAttachmentReference> resolvedattachmentRefs;
     VkAttachmentReference depthAttachmentRef;
     std::vector<VkAttachmentDescription> attachmentdescription;
+    bool nodepth = true;
     
     for (const auto& attach : attachments)
     {
@@ -41,6 +42,7 @@ void Renderpass::createRenderPass()
             attachmentRef.attachment = attach.bindLocation;
             attachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             depthAttachmentRef = attachmentRef;
+            nodepth = false;
         }
     }
 
@@ -62,6 +64,7 @@ void Renderpass::createRenderPass()
     subpass.colorAttachmentCount = static_cast<uint32_t>(colorattachmentRefs.size());
     subpass.pColorAttachments = colorattachmentRefs.data();
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    if (nodepth) subpass.pDepthStencilAttachment = nullptr;
     subpass.pResolveAttachments = resolvedattachmentRefs.data();
 
     outputSize = colorattachmentRefs.size();

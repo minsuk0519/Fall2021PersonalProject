@@ -5,18 +5,8 @@
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
-void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples)
+void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descriptorSetLayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum)
 {
-	VkVertexInputBindingDescription bindingDescription = PosColorTexVertex::getBindingDescription();
-	auto attributeDescriptions = PosColorTexVertex::getAttributeDescriptions();
-
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-	vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -88,7 +78,11 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-	std::array<VkPipelineColorBlendAttachmentState, 3> colorBlendAttachments{ colorBlendAttachment, colorBlendAttachment, colorBlendAttachment };
+	std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
+	for (uint32_t i = 0; i < colorNum; ++i)
+	{
+		colorBlendAttachments.push_back(colorBlendAttachment);
+	}
 
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -117,7 +111,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkDescriptorSetLayout descri
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo.stageCount = static_cast<size_t>(shaderStages.size());
 	pipelineInfo.pStages = shaderStages.data();
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pVertexInputState = &inputstate;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pRasterizationState = &rasterizer;
