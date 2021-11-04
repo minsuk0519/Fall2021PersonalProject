@@ -23,5 +23,7 @@ void LevelManager::close()
 	for (auto& level : levelList)
 	{
 		level->close();
+		delete level;
 	}
+	levelList.clear();
 }

@@ -322,6 +322,23 @@ void Graphic::update(float /*dt*/)
         VulkanMemoryManager::MapMemory(buffers[2]->GetMemory(), sizeof(transform), &ubo);
     }
 
+    //pre render
+    {
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        std::array<VkCommandBuffer, 1> bufferlist = { vulkanCommandBuffers };
+
+        submitInfo.commandBufferCount = static_cast<uint32_t>(bufferlist.size());
+        submitInfo.pCommandBuffers = bufferlist.data();
+
+        if (vkQueueSubmit(application->GetGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+        vkQueueWaitIdle(application->GetGraphicQueue());
+    }
+
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -331,8 +348,10 @@ void Graphic::update(float /*dt*/)
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &vulkanCommandBuffers[imageIndex];
+    std::array<VkCommandBuffer, 1> bufferlist = { vulkanpostCommandBuffer[imageIndex] };
+
+    submitInfo.commandBufferCount = static_cast<uint32_t>(bufferlist.size());
+    submitInfo.pCommandBuffers = bufferlist.data();
 
     VkSemaphore signalSemaphores[] = { vulkanRenderFinishedSemaphores[currentFrame] };
     submitInfo.signalSemaphoreCount = 1;
@@ -381,6 +400,9 @@ void Graphic::close()
 
     descriptorSet->close();
     delete descriptorSet;
+
+    postdescriptorSet->close();
+    delete postdescriptorSet;
 
     vkDestroySampler(vulkanDevice, vulkanTextureSampler, nullptr);
     vkDestroyImageView(vulkanDevice, vulkanTextureImageView, nullptr);
@@ -492,15 +514,20 @@ void Graphic::CloseSwapChain()
     vkDestroyImage(vulkanDevice, vulkanDepthImage, nullptr);
     vkFreeMemory(vulkanDevice, vulkanDepthImageMemory, nullptr);
 
-    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
+    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), 1, &vulkanCommandBuffers);
+    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanpostCommandBuffer.size()), vulkanpostCommandBuffer.data());
 
     renderpass->close();
     delete renderpass;
 
+    postrenderpass->close();
+    delete postrenderpass;
+
     graphicPipeline->close();
     delete graphicPipeline;
 
-    //vkDestroyRenderPass(vulkanDevice, vulkanRenderPass, nullptr);
+    postgraphicPipeline->close();
+    delete postgraphicPipeline;
 
     for (auto imageView : vulkanSwapChainImageViews)
     {
@@ -545,7 +572,7 @@ void Graphic::DefineDrawBehavior()
         colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         vulkanDepthFormat = findSupportedFormat({
     VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
@@ -566,39 +593,46 @@ void Graphic::DefineDrawBehavior()
         attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
         attach.attachmentDescription = colorAttachment;
         attach.bindLocation = 0;
-        attach.imageView = vulkanColorImageView[0];
+        attach.imageViews.push_back(vulkanColorImageView[0]);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         attach.bindLocation = 1;
-        attach.imageView = vulkanColorImageView[1];
+        attach.imageViews.push_back(vulkanColorImageView[1]);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         attach.bindLocation = 2;
-        attach.imageView = vulkanColorImageView[2];
+        attach.imageViews.push_back(vulkanColorImageView[2]);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         attach.attachmentDescription = colorAttachmentResolve;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_RESOLVE;
         attach.bindLocation = 3;
-        attach.imageView = vulkanColorImageView[3];
+        attach.imageViews.push_back(vulkanColorImageView[3]);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         attach.bindLocation = 4;
-        attach.imageView = vulkanColorImageView[4];
+        attach.imageViews.push_back(vulkanColorImageView[4]);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         attach.bindLocation = 5;
-        attach.imageView = vulkanColorImageView[5];
+        attach.imageViews.push_back(vulkanColorImageView[5]);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         attach.attachmentDescription = depthAttachment;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_DEPTH;
         attach.bindLocation = 6;
-        attach.imageView = vulkanDepthImageView;
+        attach.imageViews.push_back(vulkanDepthImageView);
         renderpass->addAttachment(attach);
+        attach.imageViews.clear();
 
         renderpass->createRenderPass();
-        renderpass->createFramebuffer();
+        renderpass->createFramebuffers();
     }
 
     {
@@ -610,18 +644,21 @@ void Graphic::DefineDrawBehavior()
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         postrenderpass = new Renderpass(vulkanDevice);
         Renderpass::Attachment attach;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
         attach.attachmentDescription = colorAttachment;
         attach.bindLocation = 0;
-        attach.imageView = vulkanSwapChainImageViews[0];
+        for (auto& swapimageview : vulkanSwapChainImageViews)
+        {
+            attach.imageViews.push_back(swapimageview);
+        }
         postrenderpass->addAttachment(attach);
 
         postrenderpass->createRenderPass();
-        postrenderpass->createFramebuffer();
+        postrenderpass->createFramebuffers(vulkanSwapChainImageViews.size());
     }
 
     //create graphic pipeline
@@ -665,57 +702,106 @@ void Graphic::DefineDrawBehavior()
 
     //create command buffer
     {
-        vulkanCommandBuffers.resize(vulkanSwapChainImages.size());
+        //vulkanCommandBuffers.resize(vulkanSwapChainImages.size());
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = application->GetCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)vulkanCommandBuffers.size();
+        allocInfo.commandBufferCount = 1;// (uint32_t)vulkanCommandBuffers.size();
 
-        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
+        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, &vulkanCommandBuffers/*vulkanCommandBuffers.data()*/) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate command buffers!");
         }
 
-        for (size_t i = 0; i < vulkanCommandBuffers.size(); ++i)
+        //for (size_t i = 0; i < vulkanCommandBuffers.size(); ++i)
         {
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
             beginInfo.flags = 0;
             beginInfo.pInheritanceInfo = nullptr;
 
-            if (vkBeginCommandBuffer(vulkanCommandBuffers[i], &beginInfo) != VK_SUCCESS)
+            if (vkBeginCommandBuffer(vulkanCommandBuffers, &beginInfo) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
 
-            renderpass->beginRenderpass(vulkanCommandBuffers[i]);
+            renderpass->beginRenderpass(vulkanCommandBuffers);
 
-            vkCmdBindPipeline(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+            vkCmdBindPipeline(vulkanCommandBuffers, VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());
 
             VkBuffer vertexBuffers[] = { buffers[0]->GetBuffer() };
             VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(vulkanCommandBuffers[i], 0, 1, vertexBuffers, offsets);
+            vkCmdBindVertexBuffers(vulkanCommandBuffers, 0, 1, vertexBuffers, offsets);
 
             //use 32 byte uint for using more than 65535 byte indices
-            vkCmdBindIndexBuffer(vulkanCommandBuffers[i], buffers[1]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(vulkanCommandBuffers, buffers[1]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[i], graphicPipeline->GetPipelinLayout());
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers, graphicPipeline->GetPipelinLayout());
 
-            vkCmdDrawIndexed(vulkanCommandBuffers[i], 11484, 1, 0, 0, 0);
+            vkCmdDrawIndexed(vulkanCommandBuffers, 11484, 1, 0, 0, 0);
 
-            vkCmdEndRenderPass(vulkanCommandBuffers[i]);
+            vkCmdEndRenderPass(vulkanCommandBuffers);
 
-            if (vkEndCommandBuffer(vulkanCommandBuffers[i]) != VK_SUCCESS)
+            if (vkEndCommandBuffer(vulkanCommandBuffers) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to recored command buffer!");
             }
         }
     }
 
+    {
+        vulkanpostCommandBuffer.resize(vulkanSwapChainImages.size());
 
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = application->GetCommandPool();
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = (uint32_t)vulkanpostCommandBuffer.size();
+
+        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanpostCommandBuffer.data()) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+
+        for (size_t i = 0; i < vulkanpostCommandBuffer.size(); ++i)
+        {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = 0;
+            beginInfo.pInheritanceInfo = nullptr;
+
+            if (vkBeginCommandBuffer(vulkanpostCommandBuffer[i], &beginInfo) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to begin recording command buffer!");
+            }
+
+            postrenderpass->beginRenderpass(vulkanpostCommandBuffer[i], i);
+
+            vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                postgraphicPipeline->GetPipeline());
+
+            VkBuffer vertexBuffers[] = { buffers[3]->GetBuffer() };
+            VkDeviceSize offsets[] = { 0 };
+            vkCmdBindVertexBuffers(vulkanpostCommandBuffer[i], 0, 1, vertexBuffers, offsets);
+
+            //use 32 byte uint for using more than 65535 byte indices
+            vkCmdBindIndexBuffer(vulkanpostCommandBuffer[i], buffers[4]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+            postdescriptorSet->BindDescriptorSet(vulkanpostCommandBuffer[i], postgraphicPipeline->GetPipelinLayout());
+
+            vkCmdDrawIndexed(vulkanpostCommandBuffer[i], 6, 1, 0, 0, 0);
+
+            vkCmdEndRenderPass(vulkanpostCommandBuffer[i]);
+
+            if (vkEndCommandBuffer(vulkanpostCommandBuffer[i]) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to recored command buffer!");
+            }
+        }
+    }
 }
 
 VkFormat Graphic::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)

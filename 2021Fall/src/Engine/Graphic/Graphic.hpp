@@ -39,7 +39,7 @@ public:
 	~Graphic() override;
 
 private:
-	std::vector<VkCommandBuffer> vulkanCommandBuffers;
+	VkCommandBuffer vulkanCommandBuffers;
 	std::vector<VkSemaphore> vulkanImageAvailableSemaphores;
 	std::vector<VkSemaphore> vulkanRenderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
@@ -86,6 +86,8 @@ private:
 	Renderpass* postrenderpass = nullptr;
 	DescriptorSet* postdescriptorSet = nullptr;
 	GraphicPipeline* postgraphicPipeline = nullptr;
+
+	std::vector<VkCommandBuffer> vulkanpostCommandBuffer;
 
 	std::vector<Buffer*> buffers;
 

@@ -210,7 +210,7 @@ void Application::initVulkan()
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
 
-        float queuePriority = 1.0f;
+        float queuePriority[2] = { 1.0f, 1.0f };
         for (uint32_t queueFamily : uniqueQueueFamilies) 
         {
             VkDeviceQueueCreateInfo queueCreateInfo{};
@@ -218,7 +218,7 @@ void Application::initVulkan()
             queueCreateInfo.queueFamilyIndex = queueFamily;
             //one queue is for imgui
             queueCreateInfo.queueCount = 2;
-            queueCreateInfo.pQueuePriorities = &queuePriority;
+            queueCreateInfo.pQueuePriorities = queuePriority;
             queueCreateInfos.push_back(queueCreateInfo);
         }
 

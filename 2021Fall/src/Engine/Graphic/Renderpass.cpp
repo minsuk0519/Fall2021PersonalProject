@@ -84,39 +84,47 @@ void Renderpass::createRenderPass()
     }
 }
 
-void Renderpass::createFramebuffer()
+void Renderpass::createFramebuffers(uint32_t number)
 {
-    std::vector<VkImageView> imageAttachments;
-    uint32_t attachmentsize = static_cast<uint32_t>(attachments.size());
-    imageAttachments.resize(attachmentsize);
-    clearValues.resize(attachmentsize);
-    
-    for (uint32_t i = 0; i < attachmentsize; ++i)
+    framebufferObjects.resize(number);
+
+    for (int j = 0; j < number; ++j)
     {
-        imageAttachments[i] = attachments[i].imageView;
+        std::vector<VkImageView> imageAttachments;
+        uint32_t attachmentsize = static_cast<uint32_t>(attachments.size());
+        imageAttachments.resize(attachmentsize);
+        clearValues.resize(attachmentsize);
 
-        if(attachments[i].type == AttachmentType::ATTACHMENT_DEPTH) clearValues[i].depthStencil = { 1.0f, 0 };
-        else clearValues[i].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    }
+        for (uint32_t i = 0; i < attachmentsize; ++i)
+        {
+            imageAttachments[i] = attachments[i].imageViews[j];
 
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = renderPassObject;
-    framebufferInfo.attachmentCount = attachmentsize;
-    framebufferInfo.pAttachments = imageAttachments.data();
-    framebufferInfo.width = Settings::windowWidth;
-    framebufferInfo.height = Settings::windowHeight;
-    framebufferInfo.layers = 1;
+            if (attachments[i].type == AttachmentType::ATTACHMENT_DEPTH) clearValues[i].depthStencil = { 1.0f, 0 };
+            else clearValues[i].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+        }
 
-    if (vkCreateFramebuffer(vulkanDevice, &framebufferInfo, nullptr, &framebufferObject) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create framebuffer!");
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPassObject;
+        framebufferInfo.attachmentCount = attachmentsize;
+        framebufferInfo.pAttachments = imageAttachments.data();
+        framebufferInfo.width = Settings::windowWidth;
+        framebufferInfo.height = Settings::windowHeight;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(vulkanDevice, &framebufferInfo, nullptr, &framebufferObjects[j]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
     }
 }
 
 void Renderpass::close()
 {
-    vkDestroyFramebuffer(vulkanDevice, framebufferObject, nullptr);
+    for (auto& framebuffer : framebufferObjects)
+    {
+        vkDestroyFramebuffer(vulkanDevice, framebuffer, nullptr);
+    }
 
     vkDestroyRenderPass(vulkanDevice, renderPassObject, nullptr);
 }
@@ -131,12 +139,12 @@ VkRenderPass Renderpass::getRenderpass() const
     return renderPassObject;
 }
 
-void Renderpass::beginRenderpass(VkCommandBuffer commandbuffer)
+void Renderpass::beginRenderpass(VkCommandBuffer commandbuffer, uint32_t index)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = renderPassObject;
-    renderPassInfo.framebuffer = framebufferObject;
+    renderPassInfo.framebuffer = framebufferObjects[index];
 
     renderPassInfo.renderArea.offset = { 0,0 };
     renderPassInfo.renderArea.extent = { Settings::windowWidth, Settings::windowHeight };

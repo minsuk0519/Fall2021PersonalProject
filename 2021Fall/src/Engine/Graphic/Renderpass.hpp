@@ -13,7 +13,7 @@ public:
 
 	void init();
 	void createRenderPass();
-	void createFramebuffer();
+	void createFramebuffers(uint32_t number = 1);
 	void close();
 
 public:
@@ -28,19 +28,19 @@ public:
 		AttachmentType type;
 
 		uint32_t bindLocation;
-		VkImageView imageView;
+		std::vector<VkImageView> imageViews;
 		VkAttachmentDescription attachmentDescription;
 	};
 
 	void addAttachment(Attachment attachment);
 	VkRenderPass getRenderpass() const;
 
-	void beginRenderpass(VkCommandBuffer commandbuffer);
+	void beginRenderpass(VkCommandBuffer commandbuffer, uint32_t index = 0);
 	uint32_t getOutputSize() const;
 
 private:
 	VkRenderPass renderPassObject;
-	VkFramebuffer framebufferObject;
+	std::vector<VkFramebuffer> framebufferObjects;
 
 	std::vector<Attachment> attachments;
 	std::vector<VkClearValue> clearValues;
