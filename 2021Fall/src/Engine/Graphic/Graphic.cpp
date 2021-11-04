@@ -32,22 +32,8 @@ void Graphic::init()
 
     //create vertex & index buffer
     {
-        std::vector<PosColorTexVertex> vert = {
-            //{{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            //{{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-            //{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-            //{{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-
-            //{{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            //{{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},
-            //{{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-            //{{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}}
-        };
-
-        std::vector<uint32_t> indices = {
-            //0, 1, 2, 2, 3, 0,
-            //4, 5, 6, 6, 7, 4
-        };
+        std::vector<PosColorTexVertex> vert;
+        std::vector<uint32_t> indices;
 
         std::vector<tinyobj::shape_t> shapes;
         tinyobj::attrib_t attrib;
@@ -111,15 +97,12 @@ void Graphic::init()
         };
 
         buffers.push_back(VulkanMemoryManager::CreateVertexBuffer(vert.data(), vert.size() * sizeof(PosTexVertex)));
-
         buffers.push_back(VulkanMemoryManager::CreateIndexBuffer(indices.data(), indices.size() * sizeof(uint32_t)));
     }
 
     //create texture image
     {
         int texWidth, texHeight, texChannels;
-        //stbi_uc* pixels = stbi_load("data/textures/texture.png", &texWidth,
-        //    &texHeight, &texChannels, STBI_rgb_alpha);
         stbi_uc* pixels = stbi_load("data/models/viking_room/viking_room.png", &texWidth,
             &texHeight, &texChannels, STBI_rgb_alpha);
 
@@ -188,69 +171,6 @@ void Graphic::init()
         {
             throw std::runtime_error("failed to create texture sampler!");
         }
-    }
-
-    {
-        descriptorSet = new DescriptorSet(vulkanDevice);
-        DescriptorSet::Descriptor descriptor;
-        descriptor.binding = 0;
-
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = buffers[2]->GetBuffer();
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(transform);
-
-        descriptor.bufferInfo = bufferInfo;
-        descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorSet->AddDescriptor(descriptor);
-
-        descriptor.binding = 1;
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = vulkanTextureImageView;
-        imageInfo.sampler = vulkanTextureSampler;
-
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorSet->AddDescriptor(descriptor);
-
-        descriptorSet->CreateDescriptorSet();
-    }
-
-    {
-        postdescriptorSet = new DescriptorSet(vulkanDevice);
-        DescriptorSet::Descriptor descriptor;
-        descriptor.binding = 0;
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
-            imageInfo.sampler = vulkanTextureSampler;
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        postdescriptorSet->AddDescriptor(descriptor);
-
-        descriptor.binding = 1;
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = vulkanColorImageView[RENDERPASS::NORMALATTACHMENT_MSAA];
-            imageInfo.sampler = vulkanTextureSampler;
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        postdescriptorSet->AddDescriptor(descriptor);
-
-        descriptor.binding = 2;
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = vulkanColorImageView[RENDERPASS::POSITIONATTACHMENT_MSAA];
-            imageInfo.sampler = vulkanTextureSampler;
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        postdescriptorSet->AddDescriptor(descriptor);
-
-        postdescriptorSet->CreateDescriptorSet();
     }
 
     DefineDrawBehavior();
@@ -398,12 +318,6 @@ void Graphic::close()
         vkFreeMemory(vulkanDevice, deviceMem, nullptr);
     }
 
-    descriptorSet->close();
-    delete descriptorSet;
-
-    postdescriptorSet->close();
-    delete postdescriptorSet;
-
     vkDestroySampler(vulkanDevice, vulkanTextureSampler, nullptr);
     vkDestroyImageView(vulkanDevice, vulkanTextureImageView, nullptr);
 
@@ -499,6 +413,12 @@ void Graphic::SetupSwapChain()
 
 void Graphic::CloseSwapChain()
 {
+    descriptorSet->close();
+    delete descriptorSet;
+
+    postdescriptorSet->close();
+    delete postdescriptorSet;
+
     for (int i = 0; i < RENDERPASS::COLORATTACHMENT_MAX; ++i)
     {
         vkDestroyImageView(vulkanDevice, vulkanColorImageView[i], nullptr);
@@ -553,6 +473,69 @@ void Graphic::RecreateSwapChain()
 
 void Graphic::DefineDrawBehavior()
 {
+    {
+        descriptorSet = new DescriptorSet(vulkanDevice);
+        DescriptorSet::Descriptor descriptor;
+        descriptor.binding = 0;
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = buffers[2]->GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(transform);
+
+        descriptor.bufferInfo = bufferInfo;
+        descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorSet->AddDescriptor(descriptor);
+
+        descriptor.binding = 1;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = vulkanTextureImageView;
+        imageInfo.sampler = vulkanTextureSampler;
+
+        descriptor.imageInfo = imageInfo;
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorSet->AddDescriptor(descriptor);
+
+        descriptorSet->CreateDescriptorSet();
+    }
+
+    {
+        postdescriptorSet = new DescriptorSet(vulkanDevice);
+        DescriptorSet::Descriptor descriptor;
+        descriptor.binding = 0;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = vulkanColorImageView[RENDERPASS::COLORATTACHMENT_MSAA];
+        imageInfo.sampler = vulkanTextureSampler;
+        descriptor.imageInfo = imageInfo;
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        postdescriptorSet->AddDescriptor(descriptor);
+
+        descriptor.binding = 1;
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = vulkanColorImageView[RENDERPASS::NORMALATTACHMENT_MSAA];
+        imageInfo.sampler = vulkanTextureSampler;
+        descriptor.imageInfo = imageInfo;
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        postdescriptorSet->AddDescriptor(descriptor);
+
+        descriptor.binding = 2;
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = vulkanColorImageView[RENDERPASS::POSITIONATTACHMENT_MSAA];
+        imageInfo.sampler = vulkanTextureSampler;
+        descriptor.imageInfo = imageInfo;
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        postdescriptorSet->AddDescriptor(descriptor);
+
+        postdescriptorSet->CreateDescriptorSet();
+    }
+
     {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = vulkanSwapChainImageFormat;
@@ -658,7 +641,7 @@ void Graphic::DefineDrawBehavior()
         postrenderpass->addAttachment(attach);
 
         postrenderpass->createRenderPass();
-        postrenderpass->createFramebuffers(vulkanSwapChainImageViews.size());
+        postrenderpass->createFramebuffers(static_cast<uint32_t>(vulkanSwapChainImageViews.size()));
     }
 
     //create graphic pipeline
@@ -778,7 +761,7 @@ void Graphic::DefineDrawBehavior()
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
 
-            postrenderpass->beginRenderpass(vulkanpostCommandBuffer[i], i);
+            postrenderpass->beginRenderpass(vulkanpostCommandBuffer[i], static_cast<uint32_t>(i));
 
             vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 postgraphicPipeline->GetPipeline());

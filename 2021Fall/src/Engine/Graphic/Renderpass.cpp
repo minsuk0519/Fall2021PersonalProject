@@ -67,7 +67,7 @@ void Renderpass::createRenderPass()
     if (nodepth) subpass.pDepthStencilAttachment = nullptr;
     subpass.pResolveAttachments = resolvedattachmentRefs.data();
 
-    outputSize = colorattachmentRefs.size();
+    outputSize = static_cast<uint32_t>(colorattachmentRefs.size());
 
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -88,7 +88,7 @@ void Renderpass::createFramebuffers(uint32_t number)
 {
     framebufferObjects.resize(number);
 
-    for (int j = 0; j < number; ++j)
+    for (uint32_t j = 0; j < number; ++j)
     {
         std::vector<VkImageView> imageAttachments;
         uint32_t attachmentsize = static_cast<uint32_t>(attachments.size());
