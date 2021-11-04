@@ -67,10 +67,6 @@ private:
 	std::array<VkImage, RENDERPASS::DEPTHATTACHMENT> vulkanColorImage;
 	std::array<VkDeviceMemory, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageMemory;
 	std::array<VkImageView, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageView;
-
-	std::vector<VkDeviceMemory> vulkanDeviceMemories;
-	std::vector<VkBuffer> vulkanBuffers;
-
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 

@@ -22,6 +22,8 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
+#define INSTANCE_COUNT 1000
+
 Graphic::Graphic(VkDevice device, Application* app) : System(device, app) {}
 
 void Graphic::init()
@@ -82,6 +84,19 @@ void Graphic::init()
 
         VkDeviceSize bufferSize = sizeof(transform);
         buffers.push_back(VulkanMemoryManager::CreateUniformBuffer(bufferSize));
+
+        std::vector<glm::vec3> transform_matrices;
+        transform_matrices.reserve(INSTANCE_COUNT);
+        float scale = 0.4f;
+        int midpoint = 30;
+        for (int i = 0; i < INSTANCE_COUNT; ++i)
+        {
+            glm::vec3 vec = glm::vec3(6.0f - scale * (i / midpoint), 3.0f - scale * (i % midpoint), 0.0f);
+            transform_matrices.push_back(vec);
+        }
+
+        size_t instance_size = transform_matrices.size() * sizeof(glm::vec3);
+        buffers.push_back(VulkanMemoryManager::CreateVertexBuffer(transform_matrices.data(), instance_size));
     }
 
     {
@@ -234,8 +249,8 @@ void Graphic::update(float /*dt*/)
         time += 0.0001f;
 
         transform ubo{};
-        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.8f));
-        ubo.worldToCamera = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
+        ubo.worldToCamera = glm::lookAt(glm::vec3(0.0f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 10.0f);
         ubo.cameraToNDC[1][1] *= -1;
 
@@ -313,11 +328,6 @@ void Graphic::update(float /*dt*/)
 
 void Graphic::close()
 {
-    for (auto& deviceMem : vulkanDeviceMemories)
-    {
-        vkFreeMemory(vulkanDevice, deviceMem, nullptr);
-    }
-
     vkDestroySampler(vulkanDevice, vulkanTextureSampler, nullptr);
     vkDestroyImageView(vulkanDevice, vulkanTextureImageView, nullptr);
 
@@ -651,13 +661,26 @@ void Graphic::DefineDrawBehavior()
         graphicPipeline->AddShaderStages("data/shaders/baserendervert.spv", VK_SHADER_STAGE_VERTEX_BIT);
         graphicPipeline->AddShaderStages("data/shaders/baserenderfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-        VkVertexInputBindingDescription bindingDescription = PosColorTexVertex::getBindingDescription();
-        auto attributeDescriptions = PosColorTexVertex::getAttributeDescriptions();
+        std::array<VkVertexInputBindingDescription, 2> bindingDescriptions;
+        bindingDescriptions[0] = PosColorTexVertex::getBindingDescription();
+        bindingDescriptions[1].binding = 1;
+        bindingDescriptions[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+        bindingDescriptions[1].stride = sizeof(glm::vec3);
+
+        auto vertdesc = PosColorTexVertex::getAttributeDescriptions();
+        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
+        attributeDescriptions[0] = vertdesc[0];
+        attributeDescriptions[1] = vertdesc[1];
+        attributeDescriptions[2] = vertdesc[2];
+        attributeDescriptions[3].binding = 1;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[3].offset = 0;
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 1;
-        vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
@@ -719,12 +742,17 @@ void Graphic::DefineDrawBehavior()
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanCommandBuffers, 0, 1, vertexBuffers, offsets);
 
+            VkBuffer instanceBuffer[] = { buffers[3]->GetBuffer() };
+            vkCmdBindVertexBuffers(vulkanCommandBuffers, 1, 1, instanceBuffer, offsets);
+
+
             //use 32 byte uint for using more than 65535 byte indices
             vkCmdBindIndexBuffer(vulkanCommandBuffers, buffers[1]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
             descriptorSet->BindDescriptorSet(vulkanCommandBuffers, graphicPipeline->GetPipelinLayout());
 
-            vkCmdDrawIndexed(vulkanCommandBuffers, 11484, 1, 0, 0, 0);
+
+            vkCmdDrawIndexed(vulkanCommandBuffers, 11484, INSTANCE_COUNT, 0, 0, 0);
 
             vkCmdEndRenderPass(vulkanCommandBuffers);
 
@@ -766,12 +794,12 @@ void Graphic::DefineDrawBehavior()
             vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 postgraphicPipeline->GetPipeline());
 
-            VkBuffer vertexBuffers[] = { buffers[3]->GetBuffer() };
+            VkBuffer vertexBuffers[] = { buffers[4]->GetBuffer() };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanpostCommandBuffer[i], 0, 1, vertexBuffers, offsets);
 
             //use 32 byte uint for using more than 65535 byte indices
-            vkCmdBindIndexBuffer(vulkanpostCommandBuffer[i], buffers[4]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(vulkanpostCommandBuffer[i], buffers[5]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
             postdescriptorSet->BindDescriptorSet(vulkanpostCommandBuffer[i], postgraphicPipeline->GetPipelinLayout());
 
