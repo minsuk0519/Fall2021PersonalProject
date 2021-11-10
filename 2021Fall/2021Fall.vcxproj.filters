@@ -56,6 +56,9 @@
     <ClCompile Include="src\Engine\Graphic\Buffer.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Image.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -115,6 +118,9 @@
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\Buffer.hpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Image.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>

@@ -26,6 +26,7 @@ enum RENDERPASS
 class Renderpass;
 class DescriptorSet;
 class Buffer;
+class Image;
 
 class Graphic : public System
 {
@@ -44,29 +45,12 @@ private:
 	std::vector<VkFence> inFlightFences;
 	std::vector<VkFence> imagesInFlight;
 
-	std::vector<VkImageView> vulkanSwapChainImageViews;
-
-	VkFormat vulkanSwapChainImageFormat;
-
 	VkSwapchainKHR vulkanSwapChain;
-
-	std::vector<VkImage> vulkanSwapChainImages;
 
 	VkExtent2D vulkanSwapChainExtent;
 
-	VkImage vulkanTextureImage;
-	VkDeviceMemory vulkanTextureImageMemory;
-	VkImageView vulkanTextureImageView;
 	VkSampler vulkanTextureSampler;
 
-	VkImage vulkanDepthImage;
-	VkDeviceMemory vulkanDepthImageMemory;
-	VkImageView vulkanDepthImageView;
-	VkFormat vulkanDepthFormat;
-
-	std::array<VkImage, RENDERPASS::DEPTHATTACHMENT> vulkanColorImage;
-	std::array<VkDeviceMemory, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageMemory;
-	std::array<VkImageView, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageView;
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -85,6 +69,13 @@ private:
 	std::vector<VkCommandBuffer> vulkanpostCommandBuffer;
 
 	std::vector<Buffer*> buffers;
+	std::vector<Image*> images;
+
+	std::vector<Image*> swapchainImages;
+	std::vector<Image*> framebufferImages;
+	uint32_t swapchainImageSize;
+	VkFormat vulkanSwapChainImageFormat;
+	VkFormat vulkanDepthFormat;
 
 private:
 	void SetupSwapChain();
