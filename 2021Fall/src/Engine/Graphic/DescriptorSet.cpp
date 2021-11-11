@@ -81,10 +81,15 @@ void DescriptorSet::CreateDescriptorSet()
         descriptorwrite.dstArrayElement = 0;
         descriptorwrite.descriptorType = descriptor.type;
         descriptorwrite.descriptorCount = 1;
-        if (descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+        if (descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
         {
             descriptorwrite.pBufferInfo = &descriptor.bufferInfo;
             descriptorwrite.pImageInfo = nullptr;
+            if (descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+            {
+                ++dynamic_count;
+                dynamic_offset.push_back(descriptor.bufferInfo.range);
+            }
         }
         else
         {
@@ -100,10 +105,17 @@ void DescriptorSet::CreateDescriptorSet()
     vkUpdateDescriptorSets(vulkanDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
 
-void DescriptorSet::BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout)
+void DescriptorSet::BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t offset)
 {
+    std::vector<uint32_t> memoffset;
+
+    for (auto off : dynamic_offset)
+    {
+        memoffset.push_back(off * offset);
+    }
+
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-        0, 1, &descriptorSet, 0, nullptr);
+        0, 1, &descriptorSet, dynamic_count, memoffset.data());
 }
 
 VkDescriptorSetLayout DescriptorSet::GetSetLayout() const

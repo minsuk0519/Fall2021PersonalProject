@@ -34,6 +34,8 @@ struct VertexInfo
 {
 	uint32_t vertex;
 	uint32_t index;
+
+	uint32_t indexSize;
 };
 
 struct DrawTarget
@@ -104,6 +106,8 @@ private:
 	void DefineDrawBehavior();
 	void CloseSwapChain();
 	void RecreateSwapChain();
+
+	void DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget& target);
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
