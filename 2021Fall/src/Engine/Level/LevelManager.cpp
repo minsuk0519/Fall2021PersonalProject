@@ -10,7 +10,7 @@ void LevelManager::init()
 
 	levelList.push_back(newlevel);
 
-	currentLevel = newlevel;
+	SetCurrentLevel(newlevel);
 }
 
 void LevelManager::update(float dt)
@@ -26,4 +26,9 @@ void LevelManager::close()
 		delete level;
 	}
 	levelList.clear();
+}
+
+void LevelManager::SetCurrentLevel(Level* level)
+{
+	currentLevel = level;
 }

@@ -17,6 +17,9 @@ public:
 	virtual void update(float dt) override;
 	virtual void close() override;
 
+public:
+	void SetCurrentLevel(Level* level);
+
 private:
 	Level* currentLevel = nullptr;
 	std::vector<Level*> levelList;

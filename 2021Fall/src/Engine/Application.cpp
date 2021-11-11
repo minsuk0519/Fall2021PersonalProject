@@ -49,6 +49,7 @@ void Application::init()
     //create main window
     window = glfwCreateWindow(Settings::windowWidth, Settings::windowHeight, "Vulkan window", nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
+    
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
     if (window == nullptr)
@@ -83,7 +84,7 @@ void Application::postinit()
 
 void Application::update()
 {
-    while (!glfwWindowShouldClose(window) && !glfwWindowShouldClose(guiWindow)) 
+    while (!glfwWindowShouldClose(window) && !glfwWindowShouldClose(guiWindow) && !shouldshutdown)
     {
         static uint32_t frameCount = 0;
         float timestamp = Helper::GetDeltaTime(false);
@@ -633,6 +634,16 @@ void Application::CreateVulkanInstance()
     {
         throw std::runtime_error("failed to create instance!");
     }
+}
+
+GLFWwindow* Application::GetWindowPointer() const
+{
+    return window;
+}
+
+void Application::SetShutdown()
+{
+    shouldshutdown = true;
 }
 
 VkSwapchainKHR Application::CreateSwapChain(uint32_t& imageCount, VkFormat& swapChainImageFormat, VkExtent2D& swapChainExtent)

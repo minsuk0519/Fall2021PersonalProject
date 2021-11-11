@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/Common/Transform.hpp"
 
 //standard library
 #include <string>
@@ -6,13 +7,18 @@
 class Object
 {
 public:
+	Object(unsigned int objid, std::string objname = "");
+
 	void init();
 	void update(float dt);
 	void close();
 
-	Object(unsigned int objid, std::string objname = "");
+public:
+	Transform& GetTransform();
 
-private:
+protected:
 	unsigned int id = -1;
 	std::string name = "";
+
+	Transform transform;
 };

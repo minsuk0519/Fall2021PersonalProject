@@ -6,10 +6,13 @@
 #include "DescriptorSet.hpp"
 #include "Buffer.hpp"
 #include "Image.hpp"
+#include "Camera.hpp"
+#include "Engine/Input/Input.hpp"
 
 //standard library
 #include <stdexcept>
 #include <unordered_map>
+#include <iostream>
 
 //3rd party library
 #include <vulkan/vulkan.h>
@@ -92,7 +95,7 @@ void Graphic::init()
         int midpoint = 30;
         for (int i = 0; i < INSTANCE_COUNT; ++i)
         {
-            glm::vec3 vec = glm::vec3(6.0f - scale * (i / midpoint), 3.0f - scale * (i % midpoint), 0.0f);
+            glm::vec3 vec = glm::vec3(6.0f - scale * (i / midpoint), 0.0f, 3.0f - scale * (i % midpoint));
             transform_matrices.push_back(vec);
         }
 
@@ -191,9 +194,12 @@ void Graphic::init()
             }
         }
     }
+
+    camera = new Camera();
+    camera->GetTransform().SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
 }
 
-void Graphic::update(float /*dt*/)
+void Graphic::update(float dt)
 {
     vkWaitForFences(vulkanDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -220,12 +226,22 @@ void Graphic::update(float /*dt*/)
     //update uniform buffer
     {
         static float time = 0; 
-        time += 0.0001f;
+        time += dt;
 
         transform ubo{};
-        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
-        ubo.worldToCamera = glm::lookAt(glm::vec3(0.0f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 10.0f);
+        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+        if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(1.0f * dt, 0.0f);
+        if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-1.0f * dt, 0.0f);
+        if (Input::isPressed(KeyBinding::KEY_RIGHT)) camera->Move(0.0f, 1.0f * dt);
+        if (Input::isPressed(KeyBinding::KEY_LEFT)) camera->Move(0.0f, -1.0f * dt);
+        if(Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->LookAround(Input::GetMouseMove().x * dt, Input::GetMouseMove().y * dt);
+
+        camera->update(dt);
+
+        ubo.worldToCamera = camera->GetWorldToCamera();
+        //ubo.worldToCamera = glm::lookAt(glm::vec3(0.0f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo.cameraToNDC[1][1] *= -1;
 
         VulkanMemoryManager::MapMemory(buffers[2]->GetMemory(), sizeof(transform), &ubo);
@@ -326,6 +342,9 @@ void Graphic::close()
     buffers.clear();
 
     CloseSwapChain();
+
+    camera->close();
+    delete camera;
 }
 
 Graphic::~Graphic() {}

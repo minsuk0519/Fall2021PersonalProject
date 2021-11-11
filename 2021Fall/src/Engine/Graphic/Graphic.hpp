@@ -27,6 +27,7 @@ class Renderpass;
 class DescriptorSet;
 class Buffer;
 class Image;
+class Camera;
 
 class Graphic : public System
 {
@@ -50,6 +51,9 @@ private:
 	VkExtent2D vulkanSwapChainExtent;
 
 	VkSampler vulkanTextureSampler;
+
+	//should be moved later?
+	Camera* camera = nullptr;
 
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
