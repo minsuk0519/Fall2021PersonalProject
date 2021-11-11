@@ -26,7 +26,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-#define INSTANCE_COUNT 1000
+#define INSTANCE_COUNT 1
 
 Graphic::Graphic(VkDevice device, Application* app) : System(device, app) {}
 
@@ -226,10 +226,10 @@ void Graphic::update(float dt)
     //update uniform buffer
     {
         static float time = 0; 
-        time += dt;
+        time += dt * 0.01f;
 
         transform ubo{};
-        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        ubo.objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
         if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(1.0f * dt, 0.0f);
         if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-1.0f * dt, 0.0f);
@@ -240,7 +240,6 @@ void Graphic::update(float dt)
         camera->update(dt);
 
         ubo.worldToCamera = camera->GetWorldToCamera();
-        //ubo.worldToCamera = glm::lookAt(glm::vec3(0.0f, 3.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo.cameraToNDC[1][1] *= -1;
 
