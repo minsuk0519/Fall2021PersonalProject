@@ -17,6 +17,11 @@ VkImageView Image::GetImageView() const
 	return imageview;
 }
 
+VkFormat Image::GetFormat() const
+{
+	return format;
+}
+
 Image::Image(uint32_t width, uint32_t height, ImageType t)
 {
 	size.width = width;

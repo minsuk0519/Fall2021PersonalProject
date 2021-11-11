@@ -22,6 +22,7 @@ public:
 
 public:
 	VkImageView GetImageView() const;
+	VkFormat GetFormat() const;
 
 private:
 	Image(uint32_t width, uint32_t height, ImageType t);

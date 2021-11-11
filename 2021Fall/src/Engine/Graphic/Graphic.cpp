@@ -96,6 +96,7 @@ void Graphic::init()
         for (int i = 0; i < INSTANCE_COUNT; ++i)
         {
             glm::vec3 vec = glm::vec3(6.0f - scale * (i / midpoint), 0.0f, 3.0f - scale * (i % midpoint));
+            vec = glm::vec3(0.0f, 0.0f, -5.0f);
             transform_matrices.push_back(vec);
         }
 
@@ -363,22 +364,22 @@ void Graphic::SetupSwapChain()
 
     //create resources (multisampled color resource)
     {
-        framebufferImages.push_back(VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples));
-        framebufferImages.push_back(VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples));
-        framebufferImages.push_back(VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples));
+        framebufferImages.resize(FrameBufferIndex::FRAMEBUFFER_MAX);
 
-        framebufferImages.push_back(VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT));
-        framebufferImages.push_back(VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT));
-        framebufferImages.push_back(VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT));
-    }
+        framebufferImages[FrameBufferIndex::COLORATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples);
+        framebufferImages[FrameBufferIndex::NORMALATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
+        framebufferImages[FrameBufferIndex::POSITIONATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
 
-    //depth buffer
-    {
+        framebufferImages[FrameBufferIndex::COLORATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT);
+        framebufferImages[FrameBufferIndex::NORMALATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
+        framebufferImages[FrameBufferIndex::POSITIONATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
+
+        //depth buffer
         vulkanDepthFormat = findSupportedFormat({
             VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT
             }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-        framebufferImages.push_back(VulkanMemoryManager::CreateDepthBuffer(vulkanDepthFormat, vulkanMSAASamples));
+        framebufferImages[FrameBufferIndex::DEPTHATTACHMENT] = VulkanMemoryManager::CreateDepthBuffer(vulkanDepthFormat, vulkanMSAASamples);
     }
 }
 
@@ -473,30 +474,17 @@ void Graphic::DefineDrawBehavior()
         descriptor.binding = 0;
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = framebufferImages[3]->GetImageView();
         imageInfo.sampler = vulkanTextureSampler;
-        descriptor.imageInfo = imageInfo;
         descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        postdescriptorSet->AddDescriptor(descriptor);
 
-        descriptor.binding = 1;
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = framebufferImages[4]->GetImageView();
-        imageInfo.sampler = vulkanTextureSampler;
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        postdescriptorSet->AddDescriptor(descriptor);
-
-        descriptor.binding = 2;
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = framebufferImages[5]->GetImageView();
-        imageInfo.sampler = vulkanTextureSampler;
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        postdescriptorSet->AddDescriptor(descriptor);
+        for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
+        {
+            descriptor.binding = i;
+            imageInfo.imageView = framebufferImages[i + COLORATTACHMENT_MAX]->GetImageView();
+            descriptor.imageInfo = imageInfo;
+            postdescriptorSet->AddDescriptor(descriptor);
+        }
 
         postdescriptorSet->CreateDescriptorSet();
     }
@@ -534,44 +522,34 @@ void Graphic::DefineDrawBehavior()
 
         renderpass = new Renderpass(vulkanDevice);
         Renderpass::Attachment attach;
+
         attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
         attach.attachmentDescription = colorAttachment;
-        attach.bindLocation = 0;
-        attach.imageViews.push_back(framebufferImages[0]->GetImageView());// vulkanColorImageView[0]);
-        renderpass->addAttachment(attach);
-        attach.imageViews.clear();
+        for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
+        {
+            attach.attachmentDescription.format = framebufferImages[i]->GetFormat();
+            attach.bindLocation = i;
+            attach.imageViews.push_back(framebufferImages[i]->GetImageView());
+            renderpass->addAttachment(attach);
+            attach.imageViews.clear();
+        }
 
-        attach.bindLocation = 1;
-        attach.imageViews.push_back(framebufferImages[1]->GetImageView());// vulkanColorImageView[1]);
-        renderpass->addAttachment(attach);
-        attach.imageViews.clear();
-
-        attach.bindLocation = 2;
-        attach.imageViews.push_back(framebufferImages[2]->GetImageView());//vulkanColorImageView[2]);
-        renderpass->addAttachment(attach);
-        attach.imageViews.clear();
-
-        attach.attachmentDescription = colorAttachmentResolve;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_RESOLVE;
-        attach.bindLocation = 3;
-        attach.imageViews.push_back(framebufferImages[3]->GetImageView());//vulkanColorImageView[3]);
-        renderpass->addAttachment(attach);
-        attach.imageViews.clear();
-
-        attach.bindLocation = 4;
-        attach.imageViews.push_back(framebufferImages[4]->GetImageView());//vulkanColorImageView[4]);
-        renderpass->addAttachment(attach);
-        attach.imageViews.clear();
-
-        attach.bindLocation = 5;
-        attach.imageViews.push_back(framebufferImages[5]->GetImageView());//vulkanColorImageView[5]);
-        renderpass->addAttachment(attach);
-        attach.imageViews.clear();
+        attach.attachmentDescription = colorAttachmentResolve;
+        for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
+        {
+            int msaaindex = i + COLORATTACHMENT_MAX;
+            attach.attachmentDescription.format = framebufferImages[msaaindex]->GetFormat();
+            attach.bindLocation = msaaindex;
+            attach.imageViews.push_back(framebufferImages[msaaindex]->GetImageView());
+            renderpass->addAttachment(attach);
+            attach.imageViews.clear();
+        }
 
         attach.attachmentDescription = depthAttachment;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_DEPTH;
         attach.bindLocation = 6;
-        attach.imageViews.push_back(framebufferImages[6]->GetImageView());//vulkanDepthImageView);
+        attach.imageViews.push_back(framebufferImages[6]->GetImageView());
         renderpass->addAttachment(attach);
         attach.imageViews.clear();
 
@@ -659,20 +637,17 @@ void Graphic::DefineDrawBehavior()
 
     //create command buffer
     {
-        //vulkanCommandBuffers.resize(vulkanSwapChainImages.size());
-
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = application->GetCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;// (uint32_t)vulkanCommandBuffers.size();
+        allocInfo.commandBufferCount = 1;
 
-        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, &vulkanCommandBuffers/*vulkanCommandBuffers.data()*/) != VK_SUCCESS)
+        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, &vulkanCommandBuffers) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate command buffers!");
         }
 
-        //for (size_t i = 0; i < vulkanCommandBuffers.size(); ++i)
         {
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

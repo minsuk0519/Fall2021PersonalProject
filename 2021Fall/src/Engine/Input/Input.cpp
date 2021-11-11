@@ -125,5 +125,6 @@ void mouseCallback(GLFWwindow* window, int button, int action, int mods)
 
 void mouseposCallback(GLFWwindow* window, double xpos, double ypos)
 {
-	Input::mousePos = { xpos, Settings::windowHeight - ypos };
+	float adjustypos = static_cast<float>(Settings::windowHeight - ypos);
+	Input::mousePos = { static_cast<float>(xpos),  adjustypos };
 }

@@ -23,8 +23,8 @@ enum class KeyBinding : int
 
 struct Point2D
 {
-	double x;
-	double y;
+	float x;
+	float y;
 };
 
 class Input : public System
