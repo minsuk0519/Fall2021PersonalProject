@@ -36,6 +36,25 @@ void Graphic::init()
 
     SetupSwapChain();
 
+    //make quad
+    {
+        std::vector<PosTexVertex> vert = {
+            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
+            {{-1.0f,  1.0f}, {0.0f, 1.0f}},
+            {{ 1.0f,  1.0f}, {1.0f, 1.0f}},
+            {{ 1.0f, -1.0f}, {1.0f, 0.0f}},
+        };
+
+        std::vector<uint32_t> indices = {
+            0, 1, 2, 0, 2, 3,
+        };
+
+        uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vert.size() * sizeof(PosTexVertex));
+        uint32_t index = VulkanMemoryManager::CreateIndexBuffer(indices.data(), indices.size() * sizeof(uint32_t));
+
+        drawtargets.push_back({ {{vertex, index}} });
+    }
+
     //create vertex & index buffer
     {
         std::vector<PosColorTexVertex> vert;
@@ -44,7 +63,8 @@ void Graphic::init()
         std::vector<tinyobj::shape_t> shapes;
         tinyobj::attrib_t attrib;
 
-        loadModel(attrib, shapes, "data/models/viking_room/viking_room.obj");
+        loadModel(attrib, shapes, "data/models/bmw/", "bmw.obj");
+        loadModel(attrib, shapes, "data/models/viking_room/", "viking_room.obj");
 
         std::unordered_map<PosColorTexVertex, uint32_t> uniqueVertices{};
 
@@ -80,14 +100,14 @@ void Graphic::init()
 
         //vertex
         size_t vertexbuffermemorysize = vert.size() * sizeof(PosColorTexVertex);
-        buffers.push_back(VulkanMemoryManager::CreateVertexBuffer(vert.data(), vertexbuffermemorysize));
+        uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vertexbuffermemorysize);
 
         //index
         size_t indexbuffermemorysize = indices.size() * sizeof(uint32_t);
-        buffers.push_back(VulkanMemoryManager::CreateIndexBuffer(indices.data(), indexbuffermemorysize));
+        uint32_t index = VulkanMemoryManager::CreateIndexBuffer(indices.data(), indexbuffermemorysize);
 
         VkDeviceSize bufferSize = sizeof(transform);
-        buffers.push_back(VulkanMemoryManager::CreateUniformBuffer(bufferSize));
+        uint32_t uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
 
         std::vector<glm::vec3> transform_matrices;
         transform_matrices.reserve(INSTANCE_COUNT);
@@ -101,23 +121,9 @@ void Graphic::init()
         }
 
         size_t instance_size = transform_matrices.size() * sizeof(glm::vec3);
-        buffers.push_back(VulkanMemoryManager::CreateVertexBuffer(transform_matrices.data(), instance_size));
-    }
+        uint32_t instance = VulkanMemoryManager::CreateVertexBuffer(transform_matrices.data(), instance_size);
 
-    {
-        std::vector<PosTexVertex> vert = {
-            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
-            {{-1.0f,  1.0f}, {0.0f, 1.0f}},
-            {{ 1.0f,  1.0f}, {1.0f, 1.0f}},
-            {{ 1.0f, -1.0f}, {1.0f, 0.0f}},
-        };
-
-        std::vector<uint32_t> indices = {
-            0, 1, 2, 0, 2, 3,
-        };
-
-        buffers.push_back(VulkanMemoryManager::CreateVertexBuffer(vert.data(), vert.size() * sizeof(PosTexVertex)));
-        buffers.push_back(VulkanMemoryManager::CreateIndexBuffer(indices.data(), indices.size() * sizeof(uint32_t)));
+        drawtargets.push_back({ {{vertex, index}}, uniform, instance, INSTANCE_COUNT });
     }
 
     //create texture image
@@ -244,7 +250,8 @@ void Graphic::update(float dt)
         ubo.cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo.cameraToNDC[1][1] *= -1;
 
-        VulkanMemoryManager::MapMemory(buffers[2]->GetMemory(), sizeof(transform), &ubo);
+        VkDeviceMemory mem = VulkanMemoryManager::GetBuffer(drawtargets[1].uniformIndex.value())->GetMemory();
+        VulkanMemoryManager::MapMemory(mem, sizeof(transform), &ubo);
     }
 
     //pre render
@@ -334,12 +341,14 @@ void Graphic::close()
     }
     images.clear();
 
-    for (auto buf : buffers)
-    {
-        buf->close();
-        delete buf;
-    }
-    buffers.clear();
+    //for (auto buf : buffers)
+    //{
+    //    buf->close();
+    //    delete buf;
+    //}
+    //buffers.clear();
+
+    VulkanMemoryManager::Close();
 
     CloseSwapChain();
 
@@ -445,7 +454,7 @@ void Graphic::DefineDrawBehavior()
         descriptor.binding = 0;
 
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = buffers[2]->GetBuffer();
+        bufferInfo.buffer = VulkanMemoryManager::GetBuffer(drawtargets.at(1).uniformIndex.value())->GetBuffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(transform);
 
@@ -664,21 +673,26 @@ void Graphic::DefineDrawBehavior()
             vkCmdBindPipeline(vulkanCommandBuffers, VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());
 
-            VkBuffer vertexBuffers[] = { buffers[0]->GetBuffer() };
+            VkBuffer vertexbuffer = VulkanMemoryManager::GetBuffer(drawtargets[1].vertexIndices[0].vertex)->GetBuffer();
+            VkBuffer indexbuffer = VulkanMemoryManager::GetBuffer(drawtargets[1].vertexIndices[0].index)->GetBuffer();
+            VkBuffer instancebuffer = VulkanMemoryManager::GetBuffer(drawtargets[1].instancebuffer.value())->GetBuffer();
+            uint32_t instancenumber = drawtargets[1].instancenumber.value();
+
+            VkBuffer vertexBuffers[] = { vertexbuffer };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanCommandBuffers, 0, 1, vertexBuffers, offsets);
 
-            VkBuffer instanceBuffer[] = { buffers[3]->GetBuffer() };
+            VkBuffer instanceBuffer[] = { instancebuffer };
             vkCmdBindVertexBuffers(vulkanCommandBuffers, 1, 1, instanceBuffer, offsets);
 
 
             //use 32 byte uint for using more than 65535 byte indices
-            vkCmdBindIndexBuffer(vulkanCommandBuffers, buffers[1]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(vulkanCommandBuffers, indexbuffer, 0, VK_INDEX_TYPE_UINT32);
 
             descriptorSet->BindDescriptorSet(vulkanCommandBuffers, graphicPipeline->GetPipelinLayout());
 
 
-            vkCmdDrawIndexed(vulkanCommandBuffers, 11484, INSTANCE_COUNT, 0, 0, 0);
+            vkCmdDrawIndexed(vulkanCommandBuffers, 11484, instancenumber, 0, 0, 0);
 
             vkCmdEndRenderPass(vulkanCommandBuffers);
 
@@ -720,12 +734,15 @@ void Graphic::DefineDrawBehavior()
             vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 postgraphicPipeline->GetPipeline());
 
-            VkBuffer vertexBuffers[] = { buffers[4]->GetBuffer() };
+            VkBuffer vertexbuffer = VulkanMemoryManager::GetBuffer(drawtargets[0].vertexIndices[0].vertex)->GetBuffer();
+            VkBuffer indexbuffer = VulkanMemoryManager::GetBuffer(drawtargets[0].vertexIndices[0].index)->GetBuffer();
+
+            VkBuffer vertexBuffers[] = { vertexbuffer };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(vulkanpostCommandBuffer[i], 0, 1, vertexBuffers, offsets);
 
             //use 32 byte uint for using more than 65535 byte indices
-            vkCmdBindIndexBuffer(vulkanpostCommandBuffer[i], buffers[5]->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(vulkanpostCommandBuffer[i], indexbuffer, 0, VK_INDEX_TYPE_UINT32);
 
             postdescriptorSet->BindDescriptorSet(vulkanpostCommandBuffer[i], postgraphicPipeline->GetPipelinLayout());
 
@@ -761,12 +778,12 @@ VkFormat Graphic::findSupportedFormat(const std::vector<VkFormat>& candidates, V
     throw std::runtime_error("failed to find supported forma!");
 }
 
-void Graphic::loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path)
+void Graphic::loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename)
 {
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path))
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (path + filename).c_str(), path.c_str()))
     {
         throw std::runtime_error("failed to load obj file : " + warn + err);
     }
@@ -787,4 +804,9 @@ VkSampleCountFlagBits Graphic::getMaxUsableSampleCount()
     if (counts & VK_SAMPLE_COUNT_2_BIT) return VK_SAMPLE_COUNT_2_BIT;
 
     return VK_SAMPLE_COUNT_1_BIT;
+}
+
+void DrawTarget::AddVertex(VertexInfo info)
+{
+    vertexIndices.push_back(info);
 }

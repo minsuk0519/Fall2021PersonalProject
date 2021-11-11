@@ -21,20 +21,27 @@ class VulkanMemoryManager
 {
 public:
 	static void Init(VkDevice device);
+	static void Close();
 
-	static Buffer* CreateVertexBuffer(void* memory, size_t memorysize);
-	static Buffer* CreateIndexBuffer(void* memory, size_t memorysize);
-	static Buffer* CreateUniformBuffer(size_t memorysize);
+	static uint32_t CreateVertexBuffer(void* memory, size_t memorysize);
+	static uint32_t CreateIndexBuffer(void* memory, size_t memorysize);
+	static uint32_t CreateUniformBuffer(size_t memorysize);
 	
 	static void GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format);
 	static Image* CreateFrameBufferImage(VkImageUsageFlags usage, VkFormat format, VkSampleCountFlagBits sample);
 	static Image* CreateDepthBuffer(VkFormat format, VkSampleCountFlagBits sample);
 	static Image* CreateTextureImage(int width, int height, unsigned char* pixels);
+
+	static Buffer* GetBuffer(uint32_t index);
+
 private:
 	static VkDevice vulkanDevice;
 	static VkPhysicalDevice vulkanPhysicalDevice;
 	static VkQueue vulkanQueue;
 	static VkCommandPool vulkanCommandpool;
+
+	static std::vector<Buffer*> buffers;
+	static uint32_t bufferIndex;
 
 public:
 	static void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,

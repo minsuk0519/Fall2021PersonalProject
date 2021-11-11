@@ -13,6 +13,9 @@ VkPhysicalDevice VulkanMemoryManager::vulkanPhysicalDevice = VK_NULL_HANDLE;
 VkQueue VulkanMemoryManager::vulkanQueue = VK_NULL_HANDLE;
 VkCommandPool VulkanMemoryManager::vulkanCommandpool = VK_NULL_HANDLE;
 
+std::vector<Buffer*> VulkanMemoryManager::buffers;
+uint32_t VulkanMemoryManager::bufferIndex = 0;
+
 void Buffer::close()
 {
     VulkanMemoryManager::FreeBuffer(buffer, memory);
@@ -28,7 +31,7 @@ VkDeviceMemory Buffer::GetMemory() const
     return memory;
 }
 
-Buffer* VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize)
+uint32_t VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize)
 {
     VkDeviceMemory buffermemory;
     VkBuffer buffer;
@@ -60,10 +63,12 @@ Buffer* VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize)
     buf->size = vertexbufferSize;
     buf->type = BUFFERTYPE::BUFFER_VERTEX;
 
-    return buf;
+    buffers.push_back(buf);
+
+    return bufferIndex++;
 }
 
-Buffer* VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
+uint32_t VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
 {
     VkDeviceMemory buffermemory;
     VkBuffer buffer;
@@ -95,10 +100,12 @@ Buffer* VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
     buf->size = bufferSize;
     buf->type = BUFFERTYPE::BUFFER_INDEX;
 
-    return buf;
+    buffers.push_back(buf);
+
+    return bufferIndex++;
 }
 
-Buffer* VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
+uint32_t VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
 {
     VkBuffer buffer;
     VkDeviceMemory buffermemory;
@@ -113,7 +120,9 @@ Buffer* VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
     buf->size = memorysize;
     buf->type = BUFFERTYPE::BUFFER_UNIFORM;
 
-    return buf;
+    buffers.push_back(buf);
+
+    return bufferIndex++;
 }
 
 void VulkanMemoryManager::GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format)
@@ -200,12 +209,32 @@ Image* VulkanMemoryManager::CreateTextureImage(int width, int height, unsigned c
     return image;
 }
 
+Buffer* VulkanMemoryManager::GetBuffer(uint32_t index)
+{
+    if (index >= buffers.size())
+    {
+        throw std::runtime_error("wrong buffer index!");
+    }
+
+    return buffers[index];
+}
+
 void VulkanMemoryManager::Init(VkDevice device)
 {
     vulkanDevice = device;
     vulkanPhysicalDevice = Application::APP()->GetPhysicalDevice();
     vulkanQueue = Application::APP()->GetGraphicQueue();
     vulkanCommandpool = Application::APP()->GetCommandPool();
+}
+
+void VulkanMemoryManager::Close()
+{
+    for (auto buf : buffers)
+    {
+        buf->close();
+        delete buf;
+    }
+    buffers.clear();
 }
 
 void VulkanMemoryManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)

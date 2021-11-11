@@ -2,6 +2,7 @@
 
 //standard library
 #include <array>
+#include <optional>
 
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -28,6 +29,23 @@ class DescriptorSet;
 class Buffer;
 class Image;
 class Camera;
+
+struct VertexInfo
+{
+	uint32_t vertex;
+	uint32_t index;
+};
+
+struct DrawTarget
+{
+	std::vector<VertexInfo> vertexIndices;
+
+	std::optional<uint32_t> uniformIndex;
+	std::optional<uint32_t> instancebuffer;
+	std::optional<uint32_t> instancenumber;
+
+	void AddVertex(VertexInfo info);
+};
 
 class Graphic : public System
 {
@@ -72,11 +90,11 @@ private:
 
 	std::vector<VkCommandBuffer> vulkanpostCommandBuffer;
 
-	std::vector<Buffer*> buffers;
-	std::vector<Image*> images;
+	std::vector<DrawTarget> drawtargets;
 
 	std::vector<Image*> swapchainImages;
 	std::vector<Image*> framebufferImages;
+	std::vector<Image*> images;
 	uint32_t swapchainImageSize;
 	VkFormat vulkanSwapChainImageFormat;
 	VkFormat vulkanDepthFormat;
@@ -89,7 +107,7 @@ private:
 
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path);
+	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
 };
