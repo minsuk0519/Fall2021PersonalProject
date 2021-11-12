@@ -57,22 +57,22 @@ void Graphic::init()
 
     //create vertex & index buffer
     {
-        std::vector<PosColorTexVertex> vert;
+        std::vector<PosNormal> vert;
         std::vector<uint32_t> indices;
 
         std::vector<tinyobj::shape_t> shapes;
         tinyobj::attrib_t attrib;
 
         //loadModel(attrib, shapes, "data/models/bmw/", "bmw.obj");
-        loadModel(attrib, shapes, "data/models/viking_room/", "viking_room.obj");
+        loadModel(attrib, shapes, "data/models/dragon/", "dragon.obj");
 
-        std::unordered_map<PosColorTexVertex, uint32_t> uniqueVertices{};
+        std::unordered_map<PosNormal, uint32_t> uniqueVertices{};
 
         for (const auto& shape : shapes)
         {
             for (const auto& index : shape.mesh.indices)
             {
-                PosColorTexVertex vertex{};
+                PosNormal vertex{};
 
                 vertex.position = {
                     attrib.vertices[3 * index.vertex_index + 0],
@@ -80,12 +80,11 @@ void Graphic::init()
                     attrib.vertices[3 * index.vertex_index + 2]
                 };
 
-                vertex.texCoord = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                vertex.normal = {
+                    attrib.normals[3 * index.vertex_index + 0],
+                    attrib.normals[3 * index.vertex_index + 1],
+                    attrib.normals[3 * index.vertex_index + 2]
                 };
-
-                vertex.color = { 1.0f, 1.0f, 1.0f };
 
                 //remove duplicate vertices
                 if (uniqueVertices.count(vertex) == 0)
@@ -99,7 +98,7 @@ void Graphic::init()
         }
 
         //vertex
-        size_t vertexbuffermemorysize = vert.size() * sizeof(PosColorTexVertex);
+        size_t vertexbuffermemorysize = vert.size() * sizeof(PosNormal);
         uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vertexbuffermemorysize);
 
         //index
@@ -123,23 +122,23 @@ void Graphic::init()
         size_t instance_size = transform_matrices.size() * sizeof(glm::vec3);
         uint32_t instance = VulkanMemoryManager::CreateVertexBuffer(transform_matrices.data(), instance_size);
 
-        drawtargets.push_back({ {{vertex, index, 11484}}, uniform, instance, INSTANCE_COUNT });
+        drawtargets.push_back({ {{vertex, index, static_cast<uint32_t>(indices.size())}}, uniform, instance, INSTANCE_COUNT });
     }
 
     //create texture image
     {
-        int texWidth, texHeight, texChannels;
-        stbi_uc* pixels = stbi_load("data/models/viking_room/viking_room.png", &texWidth,
-            &texHeight, &texChannels, STBI_rgb_alpha);
+        //int texWidth, texHeight, texChannels;
+        //stbi_uc* pixels = stbi_load("data/models/viking_room/viking_room.png", &texWidth,
+        //    &texHeight, &texChannels, STBI_rgb_alpha);
 
-        if (!pixels)
-        {
-            throw std::runtime_error("failed to load texture image!");
-        }
+        //if (!pixels)
+        //{
+        //    throw std::runtime_error("failed to load texture image!");
+        //}
 
-        images.push_back(VulkanMemoryManager::CreateTextureImage(texWidth, texHeight, pixels));
+        //images.push_back(VulkanMemoryManager::CreateTextureImage(texWidth, texHeight, pixels));
 
-        stbi_image_free(pixels);
+        //stbi_image_free(pixels);
     }
 
     //sampler
@@ -244,18 +243,17 @@ void Graphic::update(float dt)
 
         camera->update(dt);
 
-
-        ubo[0].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        ubo[0].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
         ubo[0].worldToCamera = camera->GetWorldToCamera();
         ubo[0].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[0].cameraToNDC[1][1] *= -1;
 
-        ubo[1].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        ubo[1].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
         ubo[1].worldToCamera = camera->GetWorldToCamera();
         ubo[1].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[1].cameraToNDC[1][1] *= -1;
 
-        ubo[2].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        ubo[2].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
         ubo[2].worldToCamera = camera->GetWorldToCamera();
         ubo[2].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[2].cameraToNDC[1][1] *= -1;
@@ -385,13 +383,11 @@ void Graphic::SetupSwapChain()
     {
         framebufferImages.resize(FrameBufferIndex::FRAMEBUFFER_MAX);
 
-        framebufferImages[FrameBufferIndex::COLORATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples);
-        framebufferImages[FrameBufferIndex::NORMALATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
         framebufferImages[FrameBufferIndex::POSITIONATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
+        framebufferImages[FrameBufferIndex::NORMALATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
 
-        framebufferImages[FrameBufferIndex::COLORATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT);
-        framebufferImages[FrameBufferIndex::NORMALATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
         framebufferImages[FrameBufferIndex::POSITIONATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
+        framebufferImages[FrameBufferIndex::NORMALATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
 
         //depth buffer
         vulkanDepthFormat = findSupportedFormat({
@@ -458,24 +454,29 @@ void Graphic::RecreateSwapChain()
 
 void Graphic::DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget& target)
 {
-    VkBuffer vertexbuffer = VulkanMemoryManager::GetBuffer(target.vertexIndices[0].vertex)->GetBuffer();
+    uint32_t size = static_cast<uint32_t>(target.vertexIndices.size());
 
-    VkBuffer vertexBuffers[] = { vertexbuffer };
-    VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
-
-    VkBuffer indexbuffer = VulkanMemoryManager::GetBuffer(target.vertexIndices[0].index)->GetBuffer();
-    vkCmdBindIndexBuffer(cmdBuffer, indexbuffer, 0, VK_INDEX_TYPE_UINT32);
-
-    if (target.instancebuffer.has_value())
+    for (int i = 0; i < size; ++i)
     {
-        VkBuffer instancebuffer = VulkanMemoryManager::GetBuffer(target.instancebuffer.value())->GetBuffer();
-        VkBuffer instanceBuffer[] = { instancebuffer };
-        vkCmdBindVertexBuffers(cmdBuffer, 1, 1, instanceBuffer, offsets);
-    }
+        VkBuffer vertexbuffer = VulkanMemoryManager::GetBuffer(target.vertexIndices[i].vertex)->GetBuffer();
 
-    uint32_t instancenumber = target.instancenumber.value_or(1);
-    vkCmdDrawIndexed(cmdBuffer, target.vertexIndices[0].indexSize, instancenumber, 0, 0, 0);
+        VkBuffer vertexBuffers[] = { vertexbuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+
+        VkBuffer indexbuffer = VulkanMemoryManager::GetBuffer(target.vertexIndices[i].index)->GetBuffer();
+        vkCmdBindIndexBuffer(cmdBuffer, indexbuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        if (target.instancebuffer.has_value())
+        {
+            VkBuffer instancebuffer = VulkanMemoryManager::GetBuffer(target.instancebuffer.value())->GetBuffer();
+            VkBuffer instanceBuffer[] = { instancebuffer };
+            vkCmdBindVertexBuffers(cmdBuffer, 1, 1, instanceBuffer, offsets);
+        }
+
+        uint32_t instancenumber = target.instancenumber.value_or(1);
+        vkCmdDrawIndexed(cmdBuffer, target.vertexIndices[i].indexSize, instancenumber, 0, 0, 0);
+    }
 }
 
 void Graphic::DefineDrawBehavior()
@@ -495,16 +496,16 @@ void Graphic::DefineDrawBehavior()
         descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         descriptorSet->AddDescriptor(descriptor);
 
-        descriptor.binding = 1;
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = images[0]->GetImageView();
-        imageInfo.sampler = vulkanTextureSampler;
+        //descriptor.binding = 1;
+        //VkDescriptorImageInfo imageInfo{};
+        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        //imageInfo.imageView = images[0]->GetImageView();
+        //imageInfo.sampler = vulkanTextureSampler;
 
-        descriptor.imageInfo = imageInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorSet->AddDescriptor(descriptor);
+        //descriptor.imageInfo = imageInfo;
+        //descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        //descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        //descriptorSet->AddDescriptor(descriptor);
 
         descriptorSet->CreateDescriptorSet();
     }
@@ -589,8 +590,8 @@ void Graphic::DefineDrawBehavior()
 
         attach.attachmentDescription = depthAttachment;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_DEPTH;
-        attach.bindLocation = 6;
-        attach.imageViews.push_back(framebufferImages[6]->GetImageView());
+        attach.bindLocation = DEPTHATTACHMENT;
+        attach.imageViews.push_back(framebufferImages[DEPTHATTACHMENT]->GetImageView());
         renderpass->addAttachment(attach);
         attach.imageViews.clear();
 
@@ -632,20 +633,19 @@ void Graphic::DefineDrawBehavior()
         graphicPipeline->AddShaderStages("data/shaders/baserenderfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
         std::array<VkVertexInputBindingDescription, 2> bindingDescriptions;
-        bindingDescriptions[0] = PosColorTexVertex::getBindingDescription();
+        bindingDescriptions[0] = PosNormal::getBindingDescription();
         bindingDescriptions[1].binding = 1;
         bindingDescriptions[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
         bindingDescriptions[1].stride = sizeof(glm::vec3);
 
-        auto vertdesc = PosColorTexVertex::getAttributeDescriptions();
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions;
+        auto vertdesc = PosNormal::getAttributeDescriptions();
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions;
         attributeDescriptions[0] = vertdesc[0];
         attributeDescriptions[1] = vertdesc[1];
-        attributeDescriptions[2] = vertdesc[2];
-        attributeDescriptions[3].binding = 1;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[3].offset = 0;
+        attributeDescriptions[2].binding = 1;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = 0;
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -654,7 +654,7 @@ void Graphic::DefineDrawBehavior()
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        graphicPipeline->init(renderpass->getRenderpass(), descriptorSet->GetSetLayout(), vulkanMSAASamples, vertexInputInfo, 3);
+        graphicPipeline->init(renderpass->getRenderpass(), descriptorSet->GetSetLayout(), vulkanMSAASamples, vertexInputInfo, 2);
     }
 
     {
