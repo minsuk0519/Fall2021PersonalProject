@@ -16,6 +16,7 @@ public:
 	virtual void init() override;
 	virtual void update(float dt) override;
 	virtual void close() override;
+	virtual void drawGUI() override;
 
 public:
 	void SetCurrentLevel(Level* level);

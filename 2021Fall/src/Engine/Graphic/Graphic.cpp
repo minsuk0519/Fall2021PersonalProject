@@ -28,7 +28,7 @@ constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 #define INSTANCE_COUNT 1
 
-Graphic::Graphic(VkDevice device, Application* app) : System(device, app) {}
+Graphic::Graphic(VkDevice device, Application* app) : System(device, app, "Graphic") {}
 
 void Graphic::init()
 {
@@ -52,7 +52,10 @@ void Graphic::init()
         uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vert.size() * sizeof(PosTexVertex));
         uint32_t index = VulkanMemoryManager::CreateIndexBuffer(indices.data(), indices.size() * sizeof(uint32_t));
 
-        drawtargets.push_back({ {{vertex, index, 6}} });
+        VkDeviceSize bufferSize = sizeof(GUISetting);
+        uint32_t uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
+
+        drawtargets.push_back({ {{vertex, index, 6}}, uniform });
     }
 
     //create vertex & index buffer
@@ -243,23 +246,26 @@ void Graphic::update(float dt)
 
         camera->update(dt);
 
-        ubo[0].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
+        ubo[0].objectMat = glm::translate(glm::mat4(1.0f), position[0]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
         ubo[0].worldToCamera = camera->GetWorldToCamera();
         ubo[0].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[0].cameraToNDC[1][1] *= -1;
 
-        ubo[1].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
+        ubo[1].objectMat = glm::translate(glm::mat4(1.0f), position[1]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
         ubo[1].worldToCamera = camera->GetWorldToCamera();
         ubo[1].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[1].cameraToNDC[1][1] *= -1;
 
-        ubo[2].objectMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
+        ubo[2].objectMat = glm::translate(glm::mat4(1.0f), position[2]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
         ubo[2].worldToCamera = camera->GetWorldToCamera();
         ubo[2].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[2].cameraToNDC[1][1] *= -1;
 
         VkDeviceMemory mem = VulkanMemoryManager::GetBuffer(drawtargets[1].uniformIndex.value())->GetMemory();
         VulkanMemoryManager::MapMemory(mem, sizeof(transform) * 3, &ubo);
+
+        mem = VulkanMemoryManager::GetBuffer(drawtargets[0].uniformIndex.value())->GetMemory();
+        VulkanMemoryManager::MapMemory(mem, sizeof(GUISetting), &guiSetting);
     }
 
     //pre render
@@ -349,13 +355,6 @@ void Graphic::close()
     }
     images.clear();
 
-    //for (auto buf : buffers)
-    //{
-    //    buf->close();
-    //    delete buf;
-    //}
-    //buffers.clear();
-
     VulkanMemoryManager::Close();
 
     CloseSwapChain();
@@ -365,6 +364,39 @@ void Graphic::close()
 }
 
 Graphic::~Graphic() {}
+
+void Graphic::drawGUI()
+{
+    ImGui::Begin(name.c_str());
+
+    if (ImGui::CollapsingHeader("Info"))
+    {
+        ImGui::Text("Swapchain num : % d", swapchainImageSize);
+
+        ImGui::Text("Samples : %d", vulkanMSAASamples);
+    }
+
+    if (ImGui::CollapsingHeader("Object"))
+    {
+        ImGui::DragFloat3("Object1", &position[0].x);
+        ImGui::DragFloat3("Object2", &position[1].x);
+        ImGui::DragFloat3("Object3", &position[2].x);
+    }
+
+    if (ImGui::CollapsingHeader("Setting"))
+    {
+        if (ImGui::Button("PositionTexture"))
+        {
+            guiSetting.deferred_type = 0;
+        } ImGui::SameLine();
+        if (ImGui::Button("NormalTexture"))
+        {
+            guiSetting.deferred_type = 1;
+        }
+    }
+
+    ImGui::End();
+}
 
 void Graphic::SetupSwapChain()
 {
@@ -456,7 +488,7 @@ void Graphic::DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget&
 {
     uint32_t size = static_cast<uint32_t>(target.vertexIndices.size());
 
-    for (int i = 0; i < size; ++i)
+    for (uint32_t i = 0; i < size; ++i)
     {
         VkBuffer vertexbuffer = VulkanMemoryManager::GetBuffer(target.vertexIndices[i].vertex)->GetBuffer();
 
@@ -513,7 +545,19 @@ void Graphic::DefineDrawBehavior()
     {
         postdescriptorSet = new DescriptorSet(vulkanDevice);
         DescriptorSet::Descriptor descriptor;
+        
         descriptor.binding = 0;
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = VulkanMemoryManager::GetBuffer(drawtargets.at(0).uniformIndex.value())->GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(GUISetting);
+
+        descriptor.bufferInfo = bufferInfo;
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        postdescriptorSet->AddDescriptor(descriptor);
+
+        descriptor.binding = 1;
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.sampler = vulkanTextureSampler;
@@ -522,7 +566,7 @@ void Graphic::DefineDrawBehavior()
 
         for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
         {
-            descriptor.binding = i;
+            descriptor.binding = i + 1;
             imageInfo.imageView = framebufferImages[i + COLORATTACHMENT_MAX]->GetImageView();
             descriptor.imageInfo = imageInfo;
             postdescriptorSet->AddDescriptor(descriptor);
@@ -654,7 +698,16 @@ void Graphic::DefineDrawBehavior()
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        graphicPipeline->init(renderpass->getRenderpass(), descriptorSet->GetSetLayout(), vulkanMSAASamples, vertexInputInfo, 2);
+        std::array<VkDescriptorSetLayout, 1> desciptorsetlayouts{ descriptorSet->GetSetLayout() };
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(desciptorsetlayouts.size());
+        pipelineLayoutInfo.pSetLayouts = desciptorsetlayouts.data();
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+        graphicPipeline->init(renderpass->getRenderpass(), pipelineLayoutInfo, vulkanMSAASamples, vertexInputInfo, 2);
     }
 
     {
@@ -673,7 +726,16 @@ void Graphic::DefineDrawBehavior()
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        postgraphicPipeline->init(postrenderpass->getRenderpass(), postdescriptorSet->GetSetLayout(), VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1);
+        std::array<VkDescriptorSetLayout, 1> desciptorsetlayouts{postdescriptorSet->GetSetLayout()};
+
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(desciptorsetlayouts.size());
+        pipelineLayoutInfo.pSetLayouts = desciptorsetlayouts.data();
+        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+        postgraphicPipeline->init(postrenderpass->getRenderpass(), pipelineLayoutInfo, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1);
     }
 
     //create command buffer

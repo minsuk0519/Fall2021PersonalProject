@@ -6,6 +6,7 @@
 
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
+#include <glm/vec3.hpp>
 
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
@@ -27,6 +28,11 @@ class DescriptorSet;
 class Buffer;
 class Image;
 class Camera;
+
+struct GUISetting
+{
+	int deferred_type = 0;
+};
 
 struct VertexInfo
 {
@@ -56,6 +62,7 @@ public:
 	void update(float dt) override;
 	void close() override;
 	~Graphic() override;
+	void drawGUI() override;
 
 private:
 	VkCommandBuffer vulkanCommandBuffers;
@@ -69,9 +76,12 @@ private:
 	VkExtent2D vulkanSwapChainExtent;
 
 	VkSampler vulkanTextureSampler;
+	VkFormat vulkanSwapChainImageFormat;
+	VkFormat vulkanDepthFormat;
 
 	//should be moved later?
 	Camera* camera = nullptr;
+	glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
 
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -96,8 +106,8 @@ private:
 	std::vector<Image*> framebufferImages;
 	std::vector<Image*> images;
 	uint32_t swapchainImageSize;
-	VkFormat vulkanSwapChainImageFormat;
-	VkFormat vulkanDepthFormat;
+
+	GUISetting guiSetting;
 
 private:
 	void SetupSwapChain();

@@ -35,6 +35,7 @@ public:
 	virtual void init() override;
 	virtual void update(float dt) override;
 	virtual void close() override;
+	virtual void drawGUI() override;
 
 	static bool isKeyPressed(int keycode);
 	static bool isMousePressed(int keycode);

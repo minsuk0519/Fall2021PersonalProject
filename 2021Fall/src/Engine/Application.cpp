@@ -934,11 +934,29 @@ void Application::RenderGui()
 
 void Application::UpdateGui()
 {    
-    if (ImGui::Begin("Hello"))
+    uint32_t size = static_cast<uint32_t>(engineSystems.size());
+    static std::vector<bool> systemGui = { true, false, false };
+
+    if (ImGui::Begin("Info"))
     {
         ImGui::Text("FPS : %u", lastFPS);
 
+        for (int i = 0; i < size; ++i)
+        {
+            bool checkbox = systemGui[i];
+            if(ImGui::Checkbox(engineSystems[i]->name.c_str(), &checkbox))
+            {
+                systemGui[i] = !systemGui[i];
+            } ImGui::SameLine();
+        }
+
         ImGui::End();
     }   
+
+    for (int i = 0; i < size; ++i)
+    {
+        if(systemGui[i]) engineSystems[i]->drawGUI();
+    }
+
 }
 

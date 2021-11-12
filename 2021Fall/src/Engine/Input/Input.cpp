@@ -9,7 +9,7 @@ Point2D Input::mousePos;
 Point2D Input::premousePos;
 Point2D Input::mouseMove;
 
-Input::Input(VkDevice device, Application* app) : System(device, app) {}
+Input::Input(VkDevice device, Application* app) : System(device, app, "Input") {}
 
 void Input::init()
 {
@@ -24,8 +24,6 @@ void Input::init()
 	glfwSetMouseButtonCallback(windowptr, mouseCallback);
 	glfwSetCursorPosCallback(windowptr, mouseposCallback);
 }
-
-#include <iostream>
 
 void Input::update(float /*dt*/)
 {
@@ -45,6 +43,14 @@ void Input::close()
 {
 	triggeredKey.reset();
 	pressedKey.reset();
+}
+
+void Input::drawGUI()
+{
+	ImGui::Begin(name.c_str());
+
+
+	ImGui::End();
 }
 
 bool Input::isKeyPressed(int keycode)
