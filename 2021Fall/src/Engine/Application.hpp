@@ -48,6 +48,9 @@ public:
 		engineSystems.push_back(new T(vulkanDevice, this));
 	}
 
+	GLFWwindow* GetWindowPointer() const;
+	void SetShutdown();
+
 //vulkan method
 public:
 	VkSwapchainKHR CreateSwapChain(uint32_t& imageCount, VkFormat& swapChainImageFormat, VkExtent2D& swapChainExtent);
@@ -66,6 +69,7 @@ public:
 	bool guirecreateswapchain = false;
 
 	uint32_t lastFPS = 0;
+	bool shouldshutdown = false;
 
 //vulkan method
 private:

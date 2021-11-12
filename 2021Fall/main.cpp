@@ -4,6 +4,7 @@
 #include "Engine/Application.hpp"
 #include "Engine/Graphic/Graphic.hpp"
 #include "Engine/Level/LevelManager.hpp"
+#include "Engine/Input/Input.hpp"
 
 //for memory debug
 #define _CRTDBG_MAP_ALLOC
@@ -27,6 +28,7 @@ int main()
 
         app->AddSystem<Graphic>();
         app->AddSystem<LevelManager>();
+        app->AddSystem<Input>();
 
         app->postinit();
         

@@ -27,7 +27,7 @@ public:
 
 	void AddDescriptor(Descriptor des);
 	void CreateDescriptorSet();
-	void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
+	void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t offset);
 
 	VkDescriptorSetLayout GetSetLayout() const;
 
@@ -36,6 +36,9 @@ private:
 	VkDescriptorPool descriptorPool;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSet descriptorSet;
+
+	uint32_t dynamic_count = 0;
+	std::vector<uint32_t> dynamic_offset;
 
 	std::vector<Descriptor> descriptors;
 };

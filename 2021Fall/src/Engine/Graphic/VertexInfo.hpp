@@ -10,14 +10,16 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-struct PosColorVertex
+struct PosNormal
 {
 	glm::vec3 position;
-	glm::vec3 color;
+	glm::vec3 normal;
 
 	static VkVertexInputBindingDescription getBindingDescription();
 
 	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+
+	bool operator==(const PosNormal& rhs) const;
 };
 
 struct PosColorTexVertex
@@ -54,6 +56,15 @@ namespace std
 			return ((hash<glm::vec3>()(vertex.position) ^ 
 				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
 				(hash<glm::vec2>()(vertex.texCoord) << 1);
+		}
+	};
+
+	template<> struct hash<PosNormal>
+	{
+		size_t operator()(PosNormal const& vertex) const
+		{
+			return ((hash<glm::vec3>()(vertex.position) ^
+				(hash<glm::vec3>()(vertex.normal) << 1)) >> 1);
 		}
 	};
 }

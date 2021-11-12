@@ -1,18 +1,24 @@
 #include "Buffer.hpp"
 #include "Engine/Application.hpp"
+#include "Engine/Misc/settings.hpp"
+#include "Image.hpp"
 
 //standard library
 #include <cstring>
 #include <stdexcept>
+#include <cmath>
 
 VkDevice VulkanMemoryManager::vulkanDevice = VK_NULL_HANDLE;
 VkPhysicalDevice VulkanMemoryManager::vulkanPhysicalDevice = VK_NULL_HANDLE;
 VkQueue VulkanMemoryManager::vulkanQueue = VK_NULL_HANDLE;
 VkCommandPool VulkanMemoryManager::vulkanCommandpool = VK_NULL_HANDLE;
 
+std::vector<Buffer*> VulkanMemoryManager::buffers;
+uint32_t VulkanMemoryManager::bufferIndex = 0;
+
 void Buffer::close()
 {
-    VulkanMemoryManager::FreeMemory(buffer, memory);
+    VulkanMemoryManager::FreeBuffer(buffer, memory);
 }
 
 VkBuffer Buffer::GetBuffer() const
@@ -25,7 +31,7 @@ VkDeviceMemory Buffer::GetMemory() const
     return memory;
 }
 
-Buffer* VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize)
+uint32_t VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize)
 {
     VkDeviceMemory buffermemory;
     VkBuffer buffer;
@@ -57,10 +63,12 @@ Buffer* VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize)
     buf->size = vertexbufferSize;
     buf->type = BUFFERTYPE::BUFFER_VERTEX;
 
-    return buf;
+    buffers.push_back(buf);
+
+    return bufferIndex++;
 }
 
-Buffer* VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
+uint32_t VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
 {
     VkDeviceMemory buffermemory;
     VkBuffer buffer;
@@ -92,10 +100,12 @@ Buffer* VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
     buf->size = bufferSize;
     buf->type = BUFFERTYPE::BUFFER_INDEX;
 
-    return buf;
+    buffers.push_back(buf);
+
+    return bufferIndex++;
 }
 
-Buffer* VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
+uint32_t VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
 {
     VkBuffer buffer;
     VkDeviceMemory buffermemory;
@@ -110,7 +120,103 @@ Buffer* VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
     buf->size = memorysize;
     buf->type = BUFFERTYPE::BUFFER_UNIFORM;
 
-    return buf;
+    buffers.push_back(buf);
+
+    return bufferIndex++;
+}
+
+void VulkanMemoryManager::GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format)
+{
+    std::vector<VkImage> swapchainimages;
+
+    vkGetSwapchainImagesKHR(vulkanDevice, swapchain, &imagecount, nullptr);
+    swapchainimages.resize(imagecount);
+    vkGetSwapchainImagesKHR(vulkanDevice, swapchain, &imagecount, swapchainimages.data());
+
+    for (size_t i = 0; i < imagecount; i++)
+    {
+        Image* image = new Image(Settings::windowWidth, Settings::windowHeight, ImageType::SWAPCHAIN);
+
+        image->format = format;
+        image->image = swapchainimages[i];
+        image->imageview = VulkanMemoryManager::createImageView(swapchainimages[i], format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+        images.push_back(image);
+    }
+}
+
+Image* VulkanMemoryManager::CreateFrameBufferImage(VkImageUsageFlags usage, VkFormat format, VkSampleCountFlagBits sample)
+{
+    Image* image = new Image(Settings::windowWidth, Settings::windowHeight, ImageType::FRAMEBUFFER);
+
+    VulkanMemoryManager::createImage(Settings::windowWidth, Settings::windowHeight, 1, sample, format,
+        VK_IMAGE_TILING_OPTIMAL, usage,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image->image, image->memory);
+
+    image->imageview = VulkanMemoryManager::createImageView(image->image, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+    image->format = format;
+
+    return image;
+}
+
+Image* VulkanMemoryManager::CreateDepthBuffer(VkFormat format, VkSampleCountFlagBits sample)
+{
+    Image* image = new Image(Settings::windowWidth, Settings::windowHeight, ImageType::FRAMEBUFFER);
+
+    VulkanMemoryManager::createImage(Settings::windowWidth, Settings::windowHeight, 1, sample, format, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image->image, image->memory);
+
+    image->imageview = VulkanMemoryManager::createImageView(image->image, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+    VulkanMemoryManager::transitionImageLayout(image->image, format, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+
+    image->format = format;
+
+    return image;
+}
+
+Image* VulkanMemoryManager::CreateTextureImage(int width, int height, unsigned char* pixels)
+{
+    Image* image = new Image(width, height, ImageType::TEXTURE);
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+
+    uint32_t textureMipLevels = static_cast<uint32_t>(std::floor(std::log2(max(width, height)))) + 1;
+    VkDeviceSize imageSize = width * height * 4;
+    VulkanMemoryManager::createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(vulkanDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+    memcpy(data, pixels, static_cast<size_t>(imageSize));
+    vkUnmapMemory(vulkanDevice, stagingBufferMemory);
+
+    VulkanMemoryManager::createImage(static_cast<uint32_t>(width), static_cast<uint32_t>(height), textureMipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image->image, image->memory);
+
+    VulkanMemoryManager::transitionImageLayout(image->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, textureMipLevels);
+    VulkanMemoryManager::copyBufferToImage(stagingBuffer, image->image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+
+    vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
+    vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
+    VulkanMemoryManager::generateMipmaps(image->image, VK_FORMAT_R8G8B8A8_SRGB, width, height, textureMipLevels);
+
+    image->imageview = VulkanMemoryManager::createImageView(image->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels);
+
+    return image;
+}
+
+Buffer* VulkanMemoryManager::GetBuffer(uint32_t index)
+{
+    if (index >= buffers.size())
+    {
+        throw std::runtime_error("wrong buffer index!");
+    }
+
+    return buffers[index];
 }
 
 void VulkanMemoryManager::Init(VkDevice device)
@@ -119,6 +225,16 @@ void VulkanMemoryManager::Init(VkDevice device)
     vulkanPhysicalDevice = Application::APP()->GetPhysicalDevice();
     vulkanQueue = Application::APP()->GetGraphicQueue();
     vulkanCommandpool = Application::APP()->GetCommandPool();
+}
+
+void VulkanMemoryManager::Close()
+{
+    for (auto buf : buffers)
+    {
+        buf->close();
+        delete buf;
+    }
+    buffers.clear();
 }
 
 void VulkanMemoryManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
@@ -448,9 +564,16 @@ void VulkanMemoryManager::generateMipmaps(VkImage image, VkFormat imageFormat, i
     endSingleTimeCommands(commandBuffer);
 }
 
-void VulkanMemoryManager::FreeMemory(VkBuffer buf, VkDeviceMemory devicememory)
+void VulkanMemoryManager::FreeBuffer(VkBuffer buf, VkDeviceMemory devicememory)
 {
     vkDestroyBuffer(vulkanDevice, buf, nullptr);
+    vkFreeMemory(vulkanDevice, devicememory, nullptr);
+}
+
+void VulkanMemoryManager::FreeImage(VkImage image, VkImageView imageview, VkDeviceMemory devicememory)
+{
+    vkDestroyImageView(vulkanDevice, imageview, nullptr);
+    if(image != nullptr) vkDestroyImage(vulkanDevice, image, nullptr);
     vkFreeMemory(vulkanDevice, devicememory, nullptr);
 }
 
@@ -461,3 +584,5 @@ void VulkanMemoryManager::MapMemory(VkDeviceMemory devicememory, size_t size, vo
     memcpy(temp, data, size);
     vkUnmapMemory(vulkanDevice, devicememory);
 }
+
+Buffer::Buffer() {}

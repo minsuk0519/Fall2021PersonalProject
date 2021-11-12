@@ -2,30 +2,56 @@
 
 //standard library
 #include <array>
+#include <optional>
 
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
+#include <glm/vec3.hpp>
 
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
 
-enum RENDERPASS
+enum FrameBufferIndex
 {
-	COLORATTACHMENT = 0,
 	NORMALATTACHMENT,
 	POSITIONATTACHMENT,
 	COLORATTACHMENT_MAX,
-	COLORATTACHMENT_MSAA = COLORATTACHMENT + COLORATTACHMENT_MAX,
 	NORMALATTACHMENT_MSAA = NORMALATTACHMENT + COLORATTACHMENT_MAX,
 	POSITIONATTACHMENT_MSAA = POSITIONATTACHMENT + COLORATTACHMENT_MAX,
 
 	DEPTHATTACHMENT = COLORATTACHMENT_MAX * 2,
-	RENDERPASS_MAX = DEPTHATTACHMENT + 1,
+	FRAMEBUFFER_MAX = DEPTHATTACHMENT + 1,
 };
 
 class Renderpass;
 class DescriptorSet;
 class Buffer;
+class Image;
+class Camera;
+
+struct GUISetting
+{
+	int deferred_type = 0;
+};
+
+struct VertexInfo
+{
+	uint32_t vertex;
+	uint32_t index;
+
+	uint32_t indexSize;
+};
+
+struct DrawTarget
+{
+	std::vector<VertexInfo> vertexIndices;
+
+	std::optional<uint32_t> uniformIndex;
+	std::optional<uint32_t> instancebuffer;
+	std::optional<uint32_t> instancenumber;
+
+	void AddVertex(VertexInfo info);
+};
 
 class Graphic : public System
 {
@@ -36,6 +62,7 @@ public:
 	void update(float dt) override;
 	void close() override;
 	~Graphic() override;
+	void drawGUI() override;
 
 private:
 	VkCommandBuffer vulkanCommandBuffers;
@@ -44,29 +71,18 @@ private:
 	std::vector<VkFence> inFlightFences;
 	std::vector<VkFence> imagesInFlight;
 
-	std::vector<VkImageView> vulkanSwapChainImageViews;
-
-	VkFormat vulkanSwapChainImageFormat;
-
 	VkSwapchainKHR vulkanSwapChain;
-
-	std::vector<VkImage> vulkanSwapChainImages;
 
 	VkExtent2D vulkanSwapChainExtent;
 
-	VkImage vulkanTextureImage;
-	VkDeviceMemory vulkanTextureImageMemory;
-	VkImageView vulkanTextureImageView;
 	VkSampler vulkanTextureSampler;
-
-	VkImage vulkanDepthImage;
-	VkDeviceMemory vulkanDepthImageMemory;
-	VkImageView vulkanDepthImageView;
+	VkFormat vulkanSwapChainImageFormat;
 	VkFormat vulkanDepthFormat;
 
-	std::array<VkImage, RENDERPASS::DEPTHATTACHMENT> vulkanColorImage;
-	std::array<VkDeviceMemory, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageMemory;
-	std::array<VkImageView, RENDERPASS::DEPTHATTACHMENT> vulkanColorImageView;
+	//should be moved later?
+	Camera* camera = nullptr;
+	glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
+
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -84,7 +100,14 @@ private:
 
 	std::vector<VkCommandBuffer> vulkanpostCommandBuffer;
 
-	std::vector<Buffer*> buffers;
+	std::vector<DrawTarget> drawtargets;
+
+	std::vector<Image*> swapchainImages;
+	std::vector<Image*> framebufferImages;
+	std::vector<Image*> images;
+	uint32_t swapchainImageSize;
+
+	GUISetting guiSetting;
 
 private:
 	void SetupSwapChain();
@@ -92,9 +115,11 @@ private:
 	void CloseSwapChain();
 	void RecreateSwapChain();
 
+	void DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget& target);
+
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const char* path);
+	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
 };

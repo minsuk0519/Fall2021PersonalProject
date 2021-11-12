@@ -56,6 +56,18 @@
     <ClCompile Include="src\Engine\Graphic\Buffer.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Image.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Input\Input.cpp">
+      <Filter>Engine\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Camera.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Common\Transform.cpp">
+      <Filter>Engine\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -72,6 +84,12 @@
     </Filter>
     <Filter Include="Dependency">
       <UniqueIdentifier>{2e43214e-900b-48a3-a56a-4ad8b8aafcc7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Input">
+      <UniqueIdentifier>{3028bd2b-8aa4-4e15-997b-8ee6f01ec60d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Common">
+      <UniqueIdentifier>{c5480f75-f891-4a69-971b-d8ce396b7158}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -116,6 +134,18 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\Buffer.hpp">
       <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Image.hpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Input\Input.hpp">
+      <Filter>Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Camera.hpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Common\Transform.hpp">
+      <Filter>Engine\Common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

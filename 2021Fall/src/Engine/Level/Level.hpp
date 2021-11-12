@@ -1,6 +1,7 @@
 #pragma once
 
 class ObjectManager;
+class Camera;
 
 class Level
 {
@@ -10,4 +11,6 @@ public:
 	void close();
 private:
 	ObjectManager* objManager = nullptr;
+
+	Camera* camera = nullptr;
 };

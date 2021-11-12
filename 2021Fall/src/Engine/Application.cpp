@@ -49,6 +49,7 @@ void Application::init()
     //create main window
     window = glfwCreateWindow(Settings::windowWidth, Settings::windowHeight, "Vulkan window", nullptr, nullptr);
     glfwSetWindowUserPointer(window, this);
+    
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
     if (window == nullptr)
@@ -83,7 +84,7 @@ void Application::postinit()
 
 void Application::update()
 {
-    while (!glfwWindowShouldClose(window) && !glfwWindowShouldClose(guiWindow)) 
+    while (!glfwWindowShouldClose(window) && !glfwWindowShouldClose(guiWindow) && !shouldshutdown)
     {
         static uint32_t frameCount = 0;
         float timestamp = Helper::GetDeltaTime(false);
@@ -635,6 +636,16 @@ void Application::CreateVulkanInstance()
     }
 }
 
+GLFWwindow* Application::GetWindowPointer() const
+{
+    return window;
+}
+
+void Application::SetShutdown()
+{
+    shouldshutdown = true;
+}
+
 VkSwapchainKHR Application::CreateSwapChain(uint32_t& imageCount, VkFormat& swapChainImageFormat, VkExtent2D& swapChainExtent)
 {
     VkSwapchainKHR swapChain;
@@ -923,11 +934,29 @@ void Application::RenderGui()
 
 void Application::UpdateGui()
 {    
-    if (ImGui::Begin("Hello"))
+    uint32_t size = static_cast<uint32_t>(engineSystems.size());
+    static std::vector<bool> systemGui = { true, false, false };
+
+    if (ImGui::Begin("Info"))
     {
         ImGui::Text("FPS : %u", lastFPS);
 
+        for (int i = 0; i < size; ++i)
+        {
+            bool checkbox = systemGui[i];
+            if(ImGui::Checkbox(engineSystems[i]->name.c_str(), &checkbox))
+            {
+                systemGui[i] = !systemGui[i];
+            } ImGui::SameLine();
+        }
+
         ImGui::End();
     }   
+
+    for (int i = 0; i < size; ++i)
+    {
+        if(systemGui[i]) engineSystems[i]->drawGUI();
+    }
+
 }
 

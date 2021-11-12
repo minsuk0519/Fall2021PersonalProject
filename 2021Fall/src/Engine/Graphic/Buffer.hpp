@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 //standard library
+#include <vector>
 
 enum BUFFERTYPE
 {
@@ -14,20 +15,33 @@ enum BUFFERTYPE
 };
 
 class Buffer;
+class Image;
 
 class VulkanMemoryManager
 {
 public:
 	static void Init(VkDevice device);
+	static void Close();
 
-	static Buffer* CreateVertexBuffer(void* memory, size_t memorysize);
-	static Buffer* CreateIndexBuffer(void* memory, size_t memorysize);
-	static Buffer* CreateUniformBuffer(size_t memorysize);
+	static uint32_t CreateVertexBuffer(void* memory, size_t memorysize);
+	static uint32_t CreateIndexBuffer(void* memory, size_t memorysize);
+	static uint32_t CreateUniformBuffer(size_t memorysize);
+	
+	static void GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format);
+	static Image* CreateFrameBufferImage(VkImageUsageFlags usage, VkFormat format, VkSampleCountFlagBits sample);
+	static Image* CreateDepthBuffer(VkFormat format, VkSampleCountFlagBits sample);
+	static Image* CreateTextureImage(int width, int height, unsigned char* pixels);
+
+	static Buffer* GetBuffer(uint32_t index);
+
 private:
 	static VkDevice vulkanDevice;
 	static VkPhysicalDevice vulkanPhysicalDevice;
 	static VkQueue vulkanQueue;
 	static VkCommandPool vulkanCommandpool;
+
+	static std::vector<Buffer*> buffers;
+	static uint32_t bufferIndex;
 
 public:
 	static void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -47,7 +61,8 @@ public:
 	static VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 	static void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 
-	static void FreeMemory(VkBuffer buf, VkDeviceMemory devicememory);
+	static void FreeBuffer(VkBuffer buf, VkDeviceMemory devicememory);
+	static void FreeImage(VkImage image, VkImageView imageview, VkDeviceMemory devicememory);
 
 	static void MapMemory(VkDeviceMemory devicememory, size_t size, void* data);
 };
@@ -61,6 +76,9 @@ public:
 public:
 	VkBuffer GetBuffer() const;
 	VkDeviceMemory GetMemory() const;
+
+private:
+	Buffer();
 
 private:
 	uint32_t id;
