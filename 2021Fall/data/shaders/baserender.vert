@@ -12,10 +12,9 @@ layout(location = 1) out vec3 fragNormal;
 
 void main()
 {
-	vec3 tempPos = (transform.objectMat * vec4(inPosition, 1.0)).xyz;
-	tempPos += offset;
-	gl_Position = transform.cameraToNDC * transform.worldToCamera * vec4(tempPos, 1.0);
-	fragPosition = (transform.objectMat * vec4(inPosition, 1.0)).xyz;
+	vec3 tempPos = (transform.objectMat * vec4(inPosition, 1.0)).xyz + offset;
+	fragPosition = (transform.worldToCamera * vec4(tempPos, 1.0)).xyz;
+	gl_Position = transform.cameraToNDC * vec4(fragPosition, 1.0);
 
-	fragNormal = normalize(mat3(transpose(inverse(transform.objectMat))) * inNormal);
+	fragNormal = normalize(mat3(transpose(inverse(transform.worldToCamera * transform.objectMat))) * inNormal);
 }

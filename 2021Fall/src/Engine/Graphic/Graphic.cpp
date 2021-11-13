@@ -118,7 +118,7 @@ void Graphic::init()
         for (int i = 0; i < INSTANCE_COUNT; ++i)
         {
             glm::vec3 vec = glm::vec3(6.0f - scale * (i / midpoint), 0.0f, 3.0f - scale * (i % midpoint));
-            vec = glm::vec3(0.0f, 0.0f, -5.0f);
+            vec = glm::vec3(0.0f, 0.0f, 0.0f);
             transform_matrices.push_back(vec);
         }
 
@@ -205,7 +205,7 @@ void Graphic::init()
     }
 
     camera = new Camera();
-    camera->GetTransform().SetPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+    camera->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, -5.0f));
 }
 
 void Graphic::update(float dt)
@@ -235,30 +235,35 @@ void Graphic::update(float dt)
     //update uniform buffer
     {
         static float time = 0; 
-        time += dt * 0.01f;
+        //time += dt * 0.01f;
 
         transform ubo[3];
         if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(1.0f * dt, 0.0f);
         if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-1.0f * dt, 0.0f);
         if (Input::isPressed(KeyBinding::KEY_RIGHT)) camera->Move(0.0f, 1.0f * dt);
         if (Input::isPressed(KeyBinding::KEY_LEFT)) camera->Move(0.0f, -1.0f * dt);
+        //if (Input::isPressed(KeyBinding::MOUSE_LEFT)) camera->Move(0.0f, 0.0f, dt);
+        //if (Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->Move(0.0f, 0.0f, -dt);
         if(Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->LookAround(Input::GetMouseMove().x * dt, Input::GetMouseMove().y * dt);
+
+        //std::cout << "cam pos : " << camera->GetTransform().GetPosition().x << ", " << camera->GetTransform().GetPosition().y << ", " << camera->GetTransform().GetPosition().z << std::endl;
+        //std::cout << "driection vector : " << camera->GetTransform().GetDirectionVector().x << ", " << camera->GetTransform().GetDirectionVector().y << ", " << camera->GetTransform().GetDirectionVector().z << std::endl;
 
         camera->update(dt);
 
         ubo[0].objectMat = glm::translate(glm::mat4(1.0f), position[0]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
         ubo[0].worldToCamera = camera->GetWorldToCamera();
-        ubo[0].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
+        ubo[0].cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[0].cameraToNDC[1][1] *= -1;
 
         ubo[1].objectMat = glm::translate(glm::mat4(1.0f), position[1]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
         ubo[1].worldToCamera = camera->GetWorldToCamera();
-        ubo[1].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
+        ubo[1].cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[1].cameraToNDC[1][1] *= -1;
 
         ubo[2].objectMat = glm::translate(glm::mat4(1.0f), position[2]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
         ubo[2].worldToCamera = camera->GetWorldToCamera();
-        ubo[2].cameraToNDC = glm::perspective(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
+        ubo[2].cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
         ubo[2].cameraToNDC[1][1] *= -1;
 
         VkDeviceMemory mem = VulkanMemoryManager::GetBuffer(drawtargets[1].uniformIndex.value())->GetMemory();

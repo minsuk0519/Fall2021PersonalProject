@@ -15,7 +15,7 @@ public:
 	void close();
 
 public:
-	void Move(float forward, float right);
+	void Move(float forward, float right, float up = 0.0f);
 	void LookAround(float roll, float pitch);
 
 	glm::mat4 GetWorldToCamera() const;

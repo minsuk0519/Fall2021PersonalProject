@@ -941,7 +941,7 @@ void Application::UpdateGui()
     {
         ImGui::Text("FPS : %u", lastFPS);
 
-        for (int i = 0; i < size; ++i)
+        for (uint32_t i = 0; i < size; ++i)
         {
             bool checkbox = systemGui[i];
             if(ImGui::Checkbox(engineSystems[i]->name.c_str(), &checkbox))
@@ -953,7 +953,7 @@ void Application::UpdateGui()
         ImGui::End();
     }   
 
-    for (int i = 0; i < size; ++i)
+    for (uint32_t i = 0; i < size; ++i)
     {
         if(systemGui[i]) engineSystems[i]->drawGUI();
     }

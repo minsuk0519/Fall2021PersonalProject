@@ -10,17 +10,18 @@ void Camera::init()
 
 void Camera::update(float dt)
 {
-	world_to_camera = glm::lookAt(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);
+	world_to_camera = glm::lookAtLH(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);
 }
 
 void Camera::close()
 {
 }
 
-void Camera::Move(float forward, float right)
+void Camera::Move(float forward, float right, float up)
 {
 	transform.MovePosition(transform.GetDirectionVector() * forward);
 	transform.MovePosition(transform.GetRightVector() * right);
+	transform.MovePosition(transform.GetUpVector() * up);
 }
 
 void Camera::LookAround(float roll, float pitch)
@@ -28,8 +29,8 @@ void Camera::LookAround(float roll, float pitch)
 	static float proll = 0.0f;
 	static float ppitch = 0.0f;
 
-	proll += roll;
-	ppitch -= pitch;
+	proll -= roll;
+	ppitch += pitch;
 
 	ppitch = std::max(glm::radians(-89.5f), ppitch);
 	ppitch = std::min(glm::radians(89.5f), ppitch);
