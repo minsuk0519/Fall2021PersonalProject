@@ -25,7 +25,7 @@ public:
 
 	static uint32_t CreateVertexBuffer(void* memory, size_t memorysize);
 	static uint32_t CreateIndexBuffer(void* memory, size_t memorysize);
-	static uint32_t CreateUniformBuffer(size_t memorysize);
+	static uint32_t CreateUniformBuffer(size_t memorysize, uint32_t num = 1);
 	
 	static void GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format);
 	static Image* CreateFrameBufferImage(VkImageUsageFlags usage, VkFormat format, VkSampleCountFlagBits sample);
@@ -65,6 +65,8 @@ public:
 	static void FreeImage(VkImage image, VkImageView imageview, VkDeviceMemory devicememory);
 
 	static void MapMemory(VkDeviceMemory devicememory, size_t size, void* data);
+
+	static void MapMemory(uint32_t index, void* data);
 };
 
 class Buffer
@@ -77,6 +79,8 @@ public:
 	VkBuffer GetBuffer() const;
 	VkDeviceMemory GetMemory() const;
 
+	VkDescriptorBufferInfo GetDescriptorInfo() const;
+
 private:
 	Buffer();
 
@@ -87,4 +91,5 @@ private:
 	VkBuffer buffer = VK_NULL_HANDLE;
 	VkDeviceMemory memory;
 	VkDeviceSize size;
+	VkDeviceSize offset;
 };

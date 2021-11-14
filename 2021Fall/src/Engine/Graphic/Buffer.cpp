@@ -62,6 +62,7 @@ uint32_t VulkanMemoryManager::CreateVertexBuffer(void* memory, size_t memorysize
     buf->buffer = buffer;
     buf->size = vertexbufferSize;
     buf->type = BUFFERTYPE::BUFFER_VERTEX;
+    buf->offset = vertexbufferSize;
 
     buffers.push_back(buf);
 
@@ -99,26 +100,30 @@ uint32_t VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
     buf->buffer = buffer;
     buf->size = bufferSize;
     buf->type = BUFFERTYPE::BUFFER_INDEX;
+    buf->offset = bufferSize;
 
     buffers.push_back(buf);
 
     return bufferIndex++;
 }
 
-uint32_t VulkanMemoryManager::CreateUniformBuffer(size_t memorysize)
+uint32_t VulkanMemoryManager::CreateUniformBuffer(size_t memorysize, uint32_t num)
 {
     VkBuffer buffer;
     VkDeviceMemory buffermemory;
 
-    createBuffer(memorysize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+    VkDeviceSize totalSize = memorysize * num;
+
+    createBuffer(totalSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer, buffermemory);
 
     Buffer* buf = new Buffer();
 
     buf->memory = buffermemory;
     buf->buffer = buffer;
-    buf->size = memorysize;
+    buf->size = totalSize;
     buf->type = BUFFERTYPE::BUFFER_UNIFORM;
+    buf->offset = memorysize;
 
     buffers.push_back(buf);
 
@@ -585,4 +590,25 @@ void VulkanMemoryManager::MapMemory(VkDeviceMemory devicememory, size_t size, vo
     vkUnmapMemory(vulkanDevice, devicememory);
 }
 
+void VulkanMemoryManager::MapMemory(uint32_t index, void* data)
+{
+    void* temp;
+    VkDeviceSize size = buffers[index]->size;
+    VkDeviceMemory memory = buffers[index]->GetMemory();
+    vkMapMemory(vulkanDevice, memory, 0, size, 0, &temp);
+    memcpy(temp, data, size);
+    vkUnmapMemory(vulkanDevice, memory);
+}
+
 Buffer::Buffer() {}
+
+VkDescriptorBufferInfo Buffer::GetDescriptorInfo() const
+{
+    VkDescriptorBufferInfo result;
+
+    result.buffer = buffer;
+    result.offset = 0;
+    result.range = offset;
+
+    return result;
+}

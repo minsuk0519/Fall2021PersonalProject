@@ -23,6 +23,14 @@ enum FrameBufferIndex
 	FRAMEBUFFER_MAX = DEPTHATTACHMENT + 1,
 };
 
+enum UniformBufferIndex
+{
+	UNIFORM_CAMERA_TRANSFORM = 0,
+	UNIFORM_OBJECT_MATRIX,
+	UNIFORM_GUI_SETTING,
+	UNIFORM_BUFFER_MAX
+};
+
 class Renderpass;
 class DescriptorSet;
 class Buffer;
@@ -46,7 +54,6 @@ struct DrawTarget
 {
 	std::vector<VertexInfo> vertexIndices;
 
-	std::optional<uint32_t> uniformIndex;
 	std::optional<uint32_t> instancebuffer;
 	std::optional<uint32_t> instancenumber;
 
@@ -109,6 +116,8 @@ private:
 
 	GUISetting guiSetting;
 
+	std::vector<uint32_t> uniformBuffers;
+
 private:
 	void SetupSwapChain();
 	void DefineDrawBehavior();
@@ -122,13 +131,4 @@ private:
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
-};
-
-#include <glm/mat4x4.hpp>
-
-struct transform
-{
-	glm::mat4 worldToCamera;
-	glm::mat4 cameraToNDC;
-	glm::mat4 objectMat;
 };

@@ -1,7 +1,8 @@
-layout(binding = 0) uniform Transform {
+layout(binding = 0) uniform Camera {
 	mat4 worldToCamera;
 	mat4 cameraToNDC;
+} cam;
 
-	//will be moved
+layout(binding = 1) uniform ObjToWorld {
 	mat4 objectMat;
-} transform;
+} obj;
