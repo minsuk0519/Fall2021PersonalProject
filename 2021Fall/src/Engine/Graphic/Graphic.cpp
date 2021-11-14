@@ -8,6 +8,7 @@
 #include "Image.hpp"
 #include "Camera.hpp"
 #include "Engine/Input/Input.hpp"
+#include "Light.hpp"
 
 //standard library
 #include <stdexcept>
@@ -51,19 +52,23 @@ void Graphic::init()
         bufferSize = sizeof(GUISetting);
         uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
         uniformBuffers[UNIFORM_GUI_SETTING] = uniform;
+
+        bufferSize = sizeof(LightData);
+        uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
+        uniformBuffers[UNIFORM_LIGHTDATA] = uniform;
     }
 
     //make quad
     {
         std::vector<PosTexVertex> vert = {
             {{-1.0f, -1.0f}, {0.0f, 0.0f}},
+            {{ 1.0f, -1.0f}, {1.0f, 0.0f}},
             {{-1.0f,  1.0f}, {0.0f, 1.0f}},
             {{ 1.0f,  1.0f}, {1.0f, 1.0f}},
-            {{ 1.0f, -1.0f}, {1.0f, 0.0f}},
         };
 
         std::vector<uint32_t> indices = {
-            0, 1, 2, 0, 2, 3,
+            0, 1, 2, 1, 3, 2,
         };
 
         uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vert.size() * sizeof(PosTexVertex));
@@ -82,7 +87,7 @@ void Graphic::init()
         tinyobj::attrib_t attrib;
 
         //loadModel(attrib, shapes, "data/models/bmw/", "bmw.obj");
-        loadModel(attrib, shapes, "data/models/dragon/", "dragon.obj");
+        loadModel(attrib, shapes, "data/models/dragon/", "bunny.obj");
 
         std::unordered_map<PosNormal, uint32_t> uniqueVertices{};
 
@@ -99,9 +104,9 @@ void Graphic::init()
                 };
 
                 vertex.normal = {
-                    attrib.normals[3 * index.vertex_index + 0],
-                    attrib.normals[3 * index.vertex_index + 1],
-                    attrib.normals[3 * index.vertex_index + 2]
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
                 };
 
                 //remove duplicate vertices
@@ -218,6 +223,9 @@ void Graphic::init()
 
     camera = new Camera();
     camera->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, -5.0f));
+
+    lightEntity = new PointLight();
+    lightEntity->init();
 }
 
 void Graphic::update(float dt)
@@ -261,6 +269,7 @@ void Graphic::update(float dt)
         //std::cout << "driection vector : " << camera->GetTransform().GetDirectionVector().x << ", " << camera->GetTransform().GetDirectionVector().y << ", " << camera->GetTransform().GetDirectionVector().z << std::endl;
 
         camera->update(dt);
+        lightEntity->update(dt);
 
         glm::mat4 mat[3];
         mat[0] = glm::translate(glm::mat4(1.0f), position[0]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
@@ -272,6 +281,8 @@ void Graphic::update(float dt)
         VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &mat);
 
         VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_GUI_SETTING], &guiSetting);
+
+        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_LIGHTDATA], lightEntity->GetLightDataPointer());
     }
 
     //pre render
@@ -367,6 +378,9 @@ void Graphic::close()
 
     camera->close();
     delete camera;
+
+    lightEntity->close();
+    delete lightEntity;
 }
 
 Graphic::~Graphic() {}
@@ -398,6 +412,10 @@ void Graphic::drawGUI()
         if (ImGui::Button("NormalTexture"))
         {
             guiSetting.deferred_type = 1;
+        } ImGui::SameLine();
+        if (ImGui::Button("Light"))
+        {
+            guiSetting.deferred_type = 2;
         }
     }
 
@@ -553,16 +571,27 @@ void Graphic::DefineDrawBehavior()
     {
         postdescriptorSet = new DescriptorSet(vulkanDevice);
         DescriptorSet::Descriptor descriptor;
-        
-        descriptor.binding = 0;
-        VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
 
+        descriptor.binding = 0;
+        VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
         descriptor.bufferInfo = bufferInfo;
         descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         postdescriptorSet->AddDescriptor(descriptor);
-
+        
         descriptor.binding = 1;
+        descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        postdescriptorSet->AddDescriptor(descriptor);
+
+        descriptor.binding = 2;
+        descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_LIGHTDATA])->GetDescriptorInfo();
+        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        postdescriptorSet->AddDescriptor(descriptor);
+
+        descriptor.binding = 3;
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.sampler = vulkanTextureSampler;
@@ -571,7 +600,7 @@ void Graphic::DefineDrawBehavior()
 
         for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
         {
-            descriptor.binding = i + 1;
+            descriptor.binding = i + 3;
             imageInfo.imageView = framebufferImages[i + COLORATTACHMENT_MAX]->GetImageView();
             descriptor.imageInfo = imageInfo;
             postdescriptorSet->AddDescriptor(descriptor);

@@ -1,17 +1,32 @@
 #version 450
 
+#include "common.glsl"
 #include "settings.glsl"
+#include "light.glsl"
 
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec2 fragPosition;
 
 layout(location = 0) out vec4 outColor;
 
-layout (binding = 1) uniform sampler2D texPosition;
-layout (binding = 2) uniform sampler2D texNormal;
+layout (binding = 3) uniform sampler2D texPosition;
+layout (binding = 4) uniform sampler2D texNormal;
 
 void main()
 {
-	if(setting.deferredType == 0)	outColor = texture(texPosition, fragTexCoord);
-	else if(setting.deferredType == 1) outColor = texture(texNormal, fragTexCoord);
+	if(setting.deferredType == 0)	
+	{
+		outColor = texture(texPosition, fragTexCoord);
+		return;
+	}
+	else if(setting.deferredType == 1) 
+	{
+		outColor = texture(texNormal, fragTexCoord);
+		return;
+	}
+
+	vec3 pos = texture(texPosition, fragTexCoord).rgb;
+	vec3 norm = texture(texNormal, fragTexCoord).rgb;
+	vec3 viewspacelightpos = (cam.worldToCamera * vec4(lightsource.position, 1.0)).xyz;
+	outColor = vec4(computeLight(pos, norm, viewspacelightpos), 1.0);
 }

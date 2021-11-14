@@ -17,9 +17,9 @@ class Camera : public Object
 {
 public:
 	Camera();
-	void init();
-	void update(float dt);
-	void close();
+	virtual void init() override;
+	virtual void update(float dt) override;
+	virtual void close() override;
 
 public:
 	void Move(float forward, float right, float up = 0.0f);

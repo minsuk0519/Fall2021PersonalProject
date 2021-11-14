@@ -28,6 +28,7 @@ enum UniformBufferIndex
 	UNIFORM_CAMERA_TRANSFORM = 0,
 	UNIFORM_OBJECT_MATRIX,
 	UNIFORM_GUI_SETTING,
+	UNIFORM_LIGHTDATA,
 	UNIFORM_BUFFER_MAX
 };
 
@@ -36,6 +37,7 @@ class DescriptorSet;
 class Buffer;
 class Image;
 class Camera;
+class Light;
 
 struct GUISetting
 {
@@ -117,6 +119,8 @@ private:
 	GUISetting guiSetting;
 
 	std::vector<uint32_t> uniformBuffers;
+
+	Light* lightEntity = nullptr;
 
 private:
 	void SetupSwapChain();

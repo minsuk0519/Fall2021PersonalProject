@@ -1,3 +1,3 @@
-layout(binding = 0) uniform GUI {
+layout(binding = 1) uniform GUI {
 	int deferredType;
 } setting;

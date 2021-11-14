@@ -68,6 +68,9 @@
     <ClCompile Include="src\Engine\Common\Transform.cpp">
       <Filter>Engine\Common</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Light.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -146,6 +149,9 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Common\Transform.hpp">
       <Filter>Engine\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Light.hpp">
+      <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

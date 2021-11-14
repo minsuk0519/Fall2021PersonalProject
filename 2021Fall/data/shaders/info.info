@@ -4,8 +4,10 @@ settings.glsl -> deferred.frag
 
 =====unifom binding location=====
 binding0 => Camera/cam in common.glsl
-bindign1 => objectMat in common.glsl
 
-binding0 => GUI/setting in settings.glsl
-binding1 => texPosition in deferred.frag
-binding2 => texNormal in deferred.frag
+binding1 => objectMat/obj in baserender.vert
+
+binding1 => GUI/setting in settings.glsl
+binding2 => lightData/lightsource in light.glsl
+binding3 => texPosition in deferred.frag
+binding4 => texNormal in deferred.frag

@@ -9,9 +9,9 @@ class Object
 public:
 	Object(unsigned int objid, std::string objname = "");
 
-	void init();
-	void update(float dt);
-	void close();
+	virtual void init();
+	virtual void update(float dt);
+	virtual void close();
 
 public:
 	Transform& GetTransform();

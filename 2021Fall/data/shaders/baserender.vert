@@ -10,6 +10,10 @@ layout(location = 2) in vec3 offset;
 layout(location = 0) out vec3 fragPosition;
 layout(location = 1) out vec3 fragNormal;
 
+layout(binding = 1) uniform object {
+	mat4 objectMat;
+} obj;
+
 void main()
 {
 	vec3 tempPos = (obj.objectMat * vec4(inPosition, 1.0)).xyz + offset;
