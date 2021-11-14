@@ -1,6 +1,5 @@
 #version 450
 
-#include "common.glsl"
 #include "settings.glsl"
 #include "light.glsl"
 
@@ -28,5 +27,13 @@ void main()
 	vec3 pos = texture(texPosition, fragTexCoord).rgb;
 	vec3 norm = texture(texNormal, fragTexCoord).rgb;
 	vec3 viewspacelightpos = (cam.worldToCamera * vec4(lightsource.position, 1.0)).xyz;
-	outColor = vec4(computeLight(pos, norm, viewspacelightpos), 1.0);
+
+	if(setting.computationType == 0)
+	{
+		outColor = vec4(ComputePBR(pos, viewspacelightpos, norm), 1.0);
+	}
+	else
+	{
+		outColor = vec4(computeLight(pos, norm, viewspacelightpos), 1.0);
+	}
 }

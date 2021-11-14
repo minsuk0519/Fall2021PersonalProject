@@ -87,7 +87,8 @@ void Graphic::init()
         tinyobj::attrib_t attrib;
 
         //loadModel(attrib, shapes, "data/models/bmw/", "bmw.obj");
-        loadModel(attrib, shapes, "data/models/dragon/", "bunny.obj");
+        loadModel(attrib, shapes, "data/models/dragon/", "dragon.obj");
+        //loadModel(attrib, shapes, "data/models/bunny/", "bunny.obj");
 
         std::unordered_map<PosNormal, uint32_t> uniqueVertices{};
 
@@ -222,7 +223,7 @@ void Graphic::init()
     }
 
     camera = new Camera();
-    camera->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, -5.0f));
+    camera->GetTransform().SetPosition(glm::vec3(0.0f, 3.0f, -5.0f));
 
     lightEntity = new PointLight();
     lightEntity->init();
@@ -407,16 +408,29 @@ void Graphic::drawGUI()
     {
         if (ImGui::Button("PositionTexture"))
         {
-            guiSetting.deferred_type = 0;
+            guiSetting.deferred_type = GUI_ENUM::DEFERRED_POSITION;
         } ImGui::SameLine();
         if (ImGui::Button("NormalTexture"))
         {
-            guiSetting.deferred_type = 1;
+            guiSetting.deferred_type = GUI_ENUM::DEFERRED_NORMAL;
         } ImGui::SameLine();
         if (ImGui::Button("Light"))
         {
-            guiSetting.deferred_type = 2;
+            guiSetting.deferred_type = GUI_ENUM::DEFERRED_LIGHT;
         }
+    }
+
+    std::array<bool, GUI_ENUM::LIGHT_COMPUTE_MAX> lightcomputationbool = { false };
+
+    lightcomputationbool[guiSetting.computation_type] = true;
+
+    if (ImGui::RadioButton("PBR", lightcomputationbool[GUI_ENUM::LIGHT_COMPUTE_PBR])) guiSetting.computation_type = GUI_ENUM::LIGHT_COMPUTE_PBR;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Basic", lightcomputationbool[GUI_ENUM::LIGHT_COMPUTE_BASIC])) guiSetting.computation_type = GUI_ENUM::LIGHT_COMPUTE_BASIC;
+
+    if (ImGui::Button("Reload Swapchain"))
+    {
+        application->framebufferSizeUpdate = true;
     }
 
     ImGui::End();

@@ -12,7 +12,7 @@ void PointLight::init()
 	lightdata.attenuationC1 = 1.0f;
 	lightdata.attenuationC2 = 0.5f;
 	lightdata.attenuationC3 = 0.5f;
-	lightdata.position = glm::vec3(0, 3, 0);
+	lightdata.position = glm::vec3(0, 5, 0);
 	lightdata.direction = glm::vec3(0, 1, 0);
 	lightdata.theta = 0.0f;
 	lightdata.phi = 0.0f;

@@ -10,6 +10,7 @@
 
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
+#include "Engine/Misc/GUIEnum.hpp"
 
 enum FrameBufferIndex
 {
@@ -41,7 +42,8 @@ class Light;
 
 struct GUISetting
 {
-	int deferred_type = 0;
+	GUI_ENUM::DEFERRED_TYPE deferred_type = GUI_ENUM::DEFERRED_LIGHT;
+	GUI_ENUM::LIGHT_COMPUTATION_TYPE computation_type = GUI_ENUM::LIGHT_COMPUTE_PBR;
 };
 
 struct VertexInfo

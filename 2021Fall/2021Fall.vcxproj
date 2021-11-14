@@ -61,6 +61,7 @@
     <ClInclude Include="src\Engine\Level\LevelManager.hpp" />
     <ClInclude Include="src\Engine\Level\Object.hpp" />
     <ClInclude Include="src\Engine\Level\ObjectManager.hpp" />
+    <ClInclude Include="src\Engine\Misc\GUIEnum.hpp" />
     <ClInclude Include="src\Engine\Misc\helper.hpp" />
     <ClInclude Include="src\Engine\Misc\settings.hpp" />
     <ClInclude Include="src\Engine\System.hpp" />

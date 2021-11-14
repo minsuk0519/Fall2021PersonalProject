@@ -153,5 +153,8 @@
     <ClInclude Include="src\Engine\Graphic\Light.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
+    <ClInclude Include="src\Engine\Misc\GUIEnum.hpp">
+      <Filter>Engine\Misc</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
