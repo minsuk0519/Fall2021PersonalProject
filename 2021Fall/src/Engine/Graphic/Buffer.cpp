@@ -590,13 +590,14 @@ void VulkanMemoryManager::MapMemory(VkDeviceMemory devicememory, size_t size, vo
     vkUnmapMemory(vulkanDevice, devicememory);
 }
 
-void VulkanMemoryManager::MapMemory(uint32_t index, void* data)
+void VulkanMemoryManager::MapMemory(uint32_t index, void* data, size_t size, uint32_t offset)
 {
     void* temp;
-    VkDeviceSize size = buffers[index]->size;
+    VkDeviceSize buffersize = buffers[index]->size;
+    if (size != 0) buffersize = size;
     VkDeviceMemory memory = buffers[index]->GetMemory();
-    vkMapMemory(vulkanDevice, memory, 0, size, 0, &temp);
-    memcpy(temp, data, size);
+    vkMapMemory(vulkanDevice, memory, offset, buffersize, 0, &temp);
+    memcpy(temp, data, buffersize);
     vkUnmapMemory(vulkanDevice, memory);
 }
 

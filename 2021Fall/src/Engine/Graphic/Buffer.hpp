@@ -66,7 +66,7 @@ public:
 
 	static void MapMemory(VkDeviceMemory devicememory, size_t size, void* data);
 
-	static void MapMemory(uint32_t index, void* data);
+	static void MapMemory(uint32_t index, void* data, size_t size = 0, uint32_t offset = 0);
 };
 
 class Buffer

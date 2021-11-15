@@ -9,6 +9,7 @@
 #include "Camera.hpp"
 #include "Engine/Input/Input.hpp"
 #include "Light.hpp"
+#include "Engine/Level/Object.hpp"
 
 //standard library
 #include <stdexcept>
@@ -45,9 +46,11 @@ void Graphic::init()
         uint32_t uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
         uniformBuffers[UNIFORM_CAMERA_TRANSFORM] = uniform;
 
-        bufferSize = sizeof(glm::mat4);
+        bufferSize = 128;// sizeof(ObjectUniform);
         uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize, 3);
         uniformBuffers[UNIFORM_OBJECT_MATRIX] = uniform;
+
+        auto a = Application::APP()->GetDeviceProperties();
 
         bufferSize = sizeof(GUISetting);
         uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
@@ -87,8 +90,8 @@ void Graphic::init()
         tinyobj::attrib_t attrib;
 
         //loadModel(attrib, shapes, "data/models/bmw/", "bmw.obj");
-        loadModel(attrib, shapes, "data/models/dragon/", "dragon.obj");
-        //loadModel(attrib, shapes, "data/models/bunny/", "bunny.obj");
+        //loadModel(attrib, shapes, "data/models/dragon/", "dragon.obj");
+        loadModel(attrib, shapes, "data/models/bunny/", "bunny.obj");
 
         std::unordered_map<PosNormal, uint32_t> uniqueVertices{};
 
@@ -227,6 +230,17 @@ void Graphic::init()
 
     lightEntity = new PointLight();
     lightEntity->init();
+
+    objlist[0] = new Object(0);
+    objlist[1] = new Object(1);
+    objlist[2] = new Object(2);
+    objlist[0]->GetTransform().SetScale(glm::vec3(3.0f));
+    objlist[0]->GetTransform().SetPosition(glm::vec3(0.0f, 10.0f, 0.0f));
+    objlist[1]->GetTransform().SetScale(glm::vec3(1.0f));
+    objlist[1]->GetTransform().SetPosition(glm::vec3(3.0f, 0.0f, 0.0f));
+    objlist[2]->GetTransform().SetScale(glm::vec3(0.2f));
+    objlist[2]->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+
 }
 
 void Graphic::update(float dt)
@@ -272,14 +286,19 @@ void Graphic::update(float dt)
         camera->update(dt);
         lightEntity->update(dt);
 
-        glm::mat4 mat[3];
-        mat[0] = glm::translate(glm::mat4(1.0f), position[0]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(3.0f));
-        mat[1] = glm::translate(glm::mat4(1.0f), position[1]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
-        mat[2] = glm::translate(glm::mat4(1.0f), position[2]) * glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
+        objlist[0]->update(dt);
+        objlist[1]->update(dt);
+        objlist[2]->update(dt);
+
+        ObjectUniform obj0 = objlist[0]->GetUniform();
+        ObjectUniform obj1 = objlist[1]->GetUniform();
+        ObjectUniform obj2 = objlist[2]->GetUniform();
 
         VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_CAMERA_TRANSFORM], camera->GetDataPointer());
 
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &mat);
+        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &obj0, sizeof(ObjectUniform));
+        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &obj1, sizeof(ObjectUniform), 128);
+        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &obj2, sizeof(ObjectUniform), 256);
 
         VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_GUI_SETTING], &guiSetting);
 
@@ -382,6 +401,13 @@ void Graphic::close()
 
     lightEntity->close();
     delete lightEntity;
+
+    objlist[0]->close();
+    delete objlist[0];
+    objlist[1]->close();
+    delete objlist[1];
+    objlist[2]->close();
+    delete objlist[2];
 }
 
 Graphic::~Graphic() {}
@@ -399,9 +425,9 @@ void Graphic::drawGUI()
 
     if (ImGui::CollapsingHeader("Object"))
     {
-        ImGui::DragFloat3("Object1", &position[0].x);
-        ImGui::DragFloat3("Object2", &position[1].x);
-        ImGui::DragFloat3("Object3", &position[2].x);
+        static int objNum = 0;
+        ImGui::InputInt("ObjectNum", &objNum);
+        objlist[objNum]->GuiSetting();
     }
 
     if (ImGui::CollapsingHeader("Setting"))
@@ -564,7 +590,7 @@ void Graphic::DefineDrawBehavior()
         descriptor.binding = 1;
         bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_OBJECT_MATRIX])->GetDescriptorInfo();
         descriptor.bufferInfo = bufferInfo;
-        descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         descriptorSet->AddDescriptor(descriptor);
 

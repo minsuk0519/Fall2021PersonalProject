@@ -24,16 +24,22 @@ void main()
 		return;
 	}
 
-	vec3 pos = texture(texPosition, fragTexCoord).rgb;
-	vec3 norm = texture(texNormal, fragTexCoord).rgb;
+	vec4 tex1 = texture(texPosition, fragTexCoord);
+	vec4 tex2 = texture(texNormal, fragTexCoord);
+	vec3 pos = tex1.rgb;
+	float metal = tex1.a;
+	vec3 norm = tex2.rgb;
+	float roughness = tex2.a;
 	vec3 viewspacelightpos = (cam.worldToCamera * vec4(lightsource.position, 1.0)).xyz;
 
 	if(setting.computationType == 0)
 	{
-		outColor = vec4(ComputePBR(pos, viewspacelightpos, norm), 1.0);
+		outColor = vec4(ComputePBR(pos, viewspacelightpos, norm, metal, roughness), 1.0);
 	}
 	else
 	{
 		outColor = vec4(computeLight(pos, norm, viewspacelightpos), 1.0);
 	}
+
+	//outColor = outColor = vec4(texture(texPosition, fragTexCoord).a, 0.0, 0.0, 1.0);
 }

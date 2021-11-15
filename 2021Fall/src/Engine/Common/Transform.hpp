@@ -5,9 +5,13 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+class Object;
+
 class Transform
 {
 public:
+	friend class Object;
+
 	glm::vec3 GetPosition() const;
 	glm::quat GetQuaternion() const;
 	glm::vec3 GetEulerAngle() const;

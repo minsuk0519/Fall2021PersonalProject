@@ -3,6 +3,7 @@
 //standard library
 #include <array>
 #include <optional>
+#include <vector>
 
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -39,6 +40,7 @@ class Buffer;
 class Image;
 class Camera;
 class Light;
+class Object;
 
 struct GUISetting
 {
@@ -92,7 +94,8 @@ private:
 
 	//should be moved later?
 	Camera* camera = nullptr;
-	glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
+	//glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
+	Object* objlist[3] = { nullptr };
 
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
