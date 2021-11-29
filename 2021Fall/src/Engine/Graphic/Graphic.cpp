@@ -28,7 +28,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-#define INSTANCE_COUNT 1
+#define INSTANCE_COUNT 65
 
 Graphic::Graphic(VkDevice device, Application* app) : System(device, app, "Graphic") {}
 
@@ -134,12 +134,12 @@ void Graphic::init()
 
         std::vector<glm::vec3> transform_matrices;
         transform_matrices.reserve(INSTANCE_COUNT);
-        float scale = 0.4f;
-        int midpoint = 30;
+        float scale = 1.5f;
+        int midpoint = 13;
         for (int i = 0; i < INSTANCE_COUNT; ++i)
         {
-            glm::vec3 vec = glm::vec3(6.0f - scale * (i / midpoint), 0.0f, 3.0f - scale * (i % midpoint));
-            vec = glm::vec3(0.0f, 0.0f, 0.0f);
+            glm::vec3 vec = glm::vec3(3.0f - scale * (i / midpoint), 0.0f, scale * 2 * (i % midpoint));
+            //vec = glm::vec3(0.0f, 0.0f, 0.0f);
             transform_matrices.push_back(vec);
         }
 
@@ -234,12 +234,15 @@ void Graphic::init()
     objlist[0] = new Object(0);
     objlist[1] = new Object(1);
     objlist[2] = new Object(2);
-    objlist[0]->GetTransform().SetScale(glm::vec3(3.0f));
-    objlist[0]->GetTransform().SetPosition(glm::vec3(0.0f, 10.0f, 0.0f));
+    objlist[0]->GetTransform().SetScale(glm::vec3(1.0f));
+    objlist[0]->GetTransform().SetPosition(glm::vec3(-7.5f, 0.0f, 0.0f));
+    objlist[0]->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.955008f, 0.637427f, 0.538163f), 1.0f, 1.0f });
     objlist[1]->GetTransform().SetScale(glm::vec3(1.0f));
-    objlist[1]->GetTransform().SetPosition(glm::vec3(3.0f, 0.0f, 0.0f));
-    objlist[2]->GetTransform().SetScale(glm::vec3(0.2f));
+    objlist[1]->GetTransform().SetPosition(glm::vec3(7.5f, 0.0f, 0.0f));
+    objlist[1]->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(1.0f, 0.765557f, 0.336057f), 1.0f, 1.0f });
+    objlist[2]->GetTransform().SetScale(glm::vec3(1.0f));
     objlist[2]->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    objlist[2]->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.659777f, 0.608679f, 0.525649f), 1.0f, 1.0f });
 
 }
 
@@ -272,10 +275,10 @@ void Graphic::update(float dt)
         static float time = 0; 
         //time += dt * 0.01f;
 
-        if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(1.0f * dt, 0.0f);
-        if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-1.0f * dt, 0.0f);
-        if (Input::isPressed(KeyBinding::KEY_RIGHT)) camera->Move(0.0f, 1.0f * dt);
-        if (Input::isPressed(KeyBinding::KEY_LEFT)) camera->Move(0.0f, -1.0f * dt);
+        if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(10.0f * dt, 0.0f);
+        if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-10.0f * dt, 0.0f);
+        if (Input::isPressed(KeyBinding::KEY_RIGHT)) camera->Move(0.0f, 10.0f * dt);
+        if (Input::isPressed(KeyBinding::KEY_LEFT)) camera->Move(0.0f, -10.0f * dt);
         //if (Input::isPressed(KeyBinding::MOUSE_LEFT)) camera->Move(0.0f, 0.0f, dt);
         //if (Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->Move(0.0f, 0.0f, -dt);
         if(Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->LookAround(Input::GetMouseMove().x * dt, Input::GetMouseMove().y * dt);
@@ -446,6 +449,8 @@ void Graphic::drawGUI()
         }
     }
 
+    ImGui::DragFloat3("Light position", &lightEntity->lightdata.position.x);
+
     std::array<bool, GUI_ENUM::LIGHT_COMPUTE_MAX> lightcomputationbool = { false };
 
     lightcomputationbool[guiSetting.computation_type] = true;
@@ -481,9 +486,11 @@ void Graphic::SetupSwapChain()
 
         framebufferImages[FrameBufferIndex::POSITIONATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
         framebufferImages[FrameBufferIndex::NORMALATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
+        framebufferImages[FrameBufferIndex::ALBEDOATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples);
 
         framebufferImages[FrameBufferIndex::POSITIONATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
         framebufferImages[FrameBufferIndex::NORMALATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
+        framebufferImages[FrameBufferIndex::ALBEDOATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT);
 
         //depth buffer
         vulkanDepthFormat = findSupportedFormat({
@@ -781,7 +788,7 @@ void Graphic::DefineDrawBehavior()
         pipelineLayoutInfo.pushConstantRangeCount = 0;
         pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-        graphicPipeline->init(renderpass->getRenderpass(), pipelineLayoutInfo, vulkanMSAASamples, vertexInputInfo, 2);
+        graphicPipeline->init(renderpass->getRenderpass(), pipelineLayoutInfo, vulkanMSAASamples, vertexInputInfo, 3);
     }
 
     {

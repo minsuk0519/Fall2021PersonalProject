@@ -10,6 +10,7 @@ layout(location = 0) out vec4 outColor;
 
 layout (binding = 3) uniform sampler2D texPosition;
 layout (binding = 4) uniform sampler2D texNormal;
+layout (binding = 5) uniform sampler2D texAlbedo;
 
 void main()
 {
@@ -26,6 +27,8 @@ void main()
 
 	vec4 tex1 = texture(texPosition, fragTexCoord);
 	vec4 tex2 = texture(texNormal, fragTexCoord);
+	vec3 albedo = texture(texAlbedo, fragTexCoord).rgb;
+	//albedo = pow(albedo, vec3(2.2));
 	vec3 pos = tex1.rgb;
 	float metal = tex1.a;
 	vec3 norm = tex2.rgb;
@@ -34,12 +37,12 @@ void main()
 
 	if(setting.computationType == 0)
 	{
-		outColor = vec4(ComputePBR(pos, viewspacelightpos, norm, metal, roughness), 1.0);
+		outColor = vec4(ComputePBR(pos, viewspacelightpos, norm, metal, roughness, albedo), 1.0);
 	}
 	else
 	{
 		outColor = vec4(computeLight(pos, norm, viewspacelightpos), 1.0);
 	}
 
-	//outColor = outColor = vec4(texture(texPosition, fragTexCoord).a, 0.0, 0.0, 1.0);
+	//outColor = vec4(texture(texAlbedo, fragTexCoord));
 }

@@ -19,10 +19,10 @@ void Object::close()
 
 void Object::GuiSetting()
 {
-	ImGui::DragFloat3("Position", &transform.position.x);
-	ImGui::DragFloat3("Color", &uniform.color.x);
-	ImGui::DragFloat("Metal", &uniform.metal, 0.01f);
-	ImGui::DragFloat("Roughness", &uniform.roughness, 0.01f);
+	ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
+	ImGui::ColorEdit3("Color", &uniform.color.x);
+	ImGui::DragFloat("Metal", &uniform.metal, 0.002f, 0.0f, 1.0f);
+	ImGui::DragFloat("Roughness", &uniform.roughness, 0.002f, 0.0f, 1.0f);
 }
 
 Transform& Object::GetTransform()

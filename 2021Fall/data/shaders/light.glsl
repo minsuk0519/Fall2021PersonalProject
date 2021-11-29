@@ -66,7 +66,7 @@ vec3 computeLight(vec3 surfacePos, vec3 normal, vec3 lightPos)
 float ComputeNormalDistribution(float alpha, float ndoth)
 {
 	float alphasquare = alpha * alpha;
-	float value = pow(ndoth * ndoth * (alphasquare - 1) + 1, 5.0);
+	float value = pow(ndoth * ndoth * (alphasquare - 1) + 1, 2.0);
 
 	return alphasquare / (PI * value);
 }
@@ -90,7 +90,7 @@ float ComputeGeometryfunction(float roughness, float ndotv, float ndotl)
 	return value1 * value2;
 }
 
-vec3 ComputeBRDF(vec3 viewDir, vec3 lightDir, vec3 normDir, float metal, float roughness)
+vec3 ComputeBRDF(vec3 viewDir, vec3 lightDir, vec3 normDir, float metal, float roughness, vec3 albedo)
 {
 	vec3 halfway = normalize(viewDir + lightDir);
 
@@ -100,32 +100,35 @@ vec3 ComputeBRDF(vec3 viewDir, vec3 lightDir, vec3 normDir, float metal, float r
 	float NdotV = clamp(dot(viewDir, normDir), 0.0, 1.0);
 
 	float D = ComputeNormalDistribution(roughnesssquare, NdotH);
-	//will be albedo
-	vec3 F = ComputeFresnelColor(vec3(1.0,1.0,1.0), metal, NdotV);
+	vec3 F = ComputeFresnelColor(albedo, metal, NdotV);
 	float G = ComputeGeometryfunction(roughness, NdotV, NdotL);
 
 	vec3 kD = vec3(1.0, 1.0, 1.0) - F;
-	kD *= 1.0 - metal;
+	kD *= (1.0 - metal);
 
 	vec3 specular = D * F * G / (4.0 * NdotV * NdotL + 0.00001);
 
-	//will be albedo
-	vec3 brdf = (kD * vec3(1.0, 1.0, 1.0) / PI + specular) * NdotL;
+	vec3 brdf = (kD * albedo / PI + specular) * NdotL;
 
 	return brdf;
 }
 
-vec3 ComputePBR(vec3 view, vec3 light, vec3 norm, float metal, float roughness)
+vec3 ComputePBR(vec3 view, vec3 light, vec3 norm, float metal, float roughness, vec3 albedo)
 {
 	float dis = length(light - view);
 	vec3 viewDir = normalize(-view);
 	vec3 lightDir = normalize(light - view);
 	vec3 normDir = normalize(norm);
 
-	vec3 result = ComputeBRDF(viewDir, lightDir, normDir, metal, roughness);
+	vec3 result = ComputeBRDF(viewDir, lightDir, normDir, metal, roughness, albedo);
+
+	result += albedo * 0.2;
 
 	//light color
-	result *= vec3(1.0, 1.0, 1.0) / (dis * dis);
+	//result *= vec3(1.0, 1.0, 1.0) / (dis * dis);
+
+	//result = result / (result + vec3(1.0));
+	//result = pow(result, vec3(1.0/2.2)); 
 
 	return result;
 }

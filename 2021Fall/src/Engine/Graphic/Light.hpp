@@ -26,6 +26,8 @@ class Light : public Object
 public:
 	Light();
 
+	friend class Graphic;
+
 	virtual void init() override = 0;
 	virtual void update(float dt) override = 0;
 	virtual void close() override = 0;
