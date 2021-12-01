@@ -50,13 +50,11 @@ void Graphic::init()
         uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize, 3);
         uniformBuffers[UNIFORM_OBJECT_MATRIX] = uniform;
 
-        auto a = Application::APP()->GetDeviceProperties();
-
         bufferSize = sizeof(GUISetting);
         uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
         uniformBuffers[UNIFORM_GUI_SETTING] = uniform;
 
-        bufferSize = sizeof(LightData);
+        bufferSize = MAX_LIGHT * 96 + sizeof(int);
         uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
         uniformBuffers[UNIFORM_LIGHTDATA] = uniform;
     }
@@ -228,8 +226,22 @@ void Graphic::init()
     camera = new Camera();
     camera->GetTransform().SetPosition(glm::vec3(0.0f, 3.0f, -5.0f));
 
+    Light* lightEntity = new PointLight();
+    lightEntity->init();
+    lightEntity->id = 0;
+    lightEntities.push_back(lightEntity);
     lightEntity = new PointLight();
     lightEntity->init();
+    lightEntity->id = 1;
+    lightEntities.push_back(lightEntity);
+    lightEntity = new PointLight();
+    lightEntity->init();
+    lightEntity->id = 2;
+    lightEntities.push_back(lightEntity);
+    lightEntity = new PointLight();
+    lightEntity->init();
+    lightEntity->id = 3;
+    lightEntities.push_back(lightEntity);
 
     objlist[0] = new Object(0);
     objlist[1] = new Object(1);
@@ -287,7 +299,10 @@ void Graphic::update(float dt)
         //std::cout << "driection vector : " << camera->GetTransform().GetDirectionVector().x << ", " << camera->GetTransform().GetDirectionVector().y << ", " << camera->GetTransform().GetDirectionVector().z << std::endl;
 
         camera->update(dt);
-        lightEntity->update(dt);
+        for (auto light : lightEntities)
+        {
+            light->update(dt);
+        }
 
         objlist[0]->update(dt);
         objlist[1]->update(dt);
@@ -305,7 +320,13 @@ void Graphic::update(float dt)
 
         VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_GUI_SETTING], &guiSetting);
 
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_LIGHTDATA], lightEntity->GetLightDataPointer());
+        uint32_t size = static_cast<uint32_t>(lightEntities.size());
+        for (uint32_t i = 0; i < size; ++i)
+        {
+            VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_LIGHTDATA], lightEntities[i]->GetLightDataPointer(camera->GetWorldToCamera()), sizeof(LightData), i * 96);
+        }
+        int data = size;
+        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_LIGHTDATA], &data, sizeof(int), MAX_LIGHT * 96);
     }
 
     //pre render
@@ -402,8 +423,12 @@ void Graphic::close()
     camera->close();
     delete camera;
 
-    lightEntity->close();
-    delete lightEntity;
+    for (auto light : lightEntities)
+    {
+        light->close();
+        delete light;
+    }
+    lightEntities.clear();
 
     objlist[0]->close();
     delete objlist[0];
@@ -443,13 +468,20 @@ void Graphic::drawGUI()
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_NORMAL;
         } ImGui::SameLine();
+        if (ImGui::Button("DiffuseTexture"))
+        {
+            guiSetting.deferred_type = GUI_ENUM::DEFERRED_ALBEDO;
+        } ImGui::SameLine();
         if (ImGui::Button("Light"))
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_LIGHT;
         }
     }
 
-    ImGui::DragFloat3("Light position", &lightEntity->lightdata.position.x);
+    for (auto light : lightEntities)
+    {
+        ImGui::DragFloat3(("Light position##LITPOS" + std::to_string(light->id)).c_str(), &(light->GetTransform().GetPosition().x));
+    }
 
     std::array<bool, GUI_ENUM::LIGHT_COMPUTE_MAX> lightcomputationbool = { false };
 

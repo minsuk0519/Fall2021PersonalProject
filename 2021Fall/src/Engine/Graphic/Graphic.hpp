@@ -13,6 +13,9 @@
 #include "GraphicPipeline.hpp"
 #include "Engine/Misc/GUIEnum.hpp"
 
+//defined in common.glsl
+#define MAX_LIGHT 8
+
 enum FrameBufferIndex
 {
 	NORMALATTACHMENT,
@@ -127,7 +130,7 @@ private:
 
 	std::vector<uint32_t> uniformBuffers;
 
-	Light* lightEntity = nullptr;
+	std::vector<Light*> lightEntities;
 
 private:
 	void SetupSwapChain();

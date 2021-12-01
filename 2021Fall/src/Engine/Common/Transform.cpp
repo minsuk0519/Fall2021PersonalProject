@@ -5,6 +5,11 @@ glm::vec3 Transform::GetPosition() const
 	return position;
 }
 
+glm::vec3& Transform::GetPosition()
+{
+	return position;
+}
+
 glm::quat Transform::GetQuaternion() const
 {
 	return rotation;

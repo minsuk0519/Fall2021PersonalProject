@@ -13,6 +13,7 @@ public:
 	friend class Object;
 
 	glm::vec3 GetPosition() const;
+	glm::vec3& GetPosition();
 	glm::quat GetQuaternion() const;
 	glm::vec3 GetEulerAngle() const;
 	glm::vec3 GetScale() const;
@@ -32,7 +33,7 @@ public:
 	void Rotate(glm::quat qt);
 
 private:
-	glm::vec3 position;
+	glm::vec3 position = glm::vec3(0, 0, 0);
 	glm::quat rotation = glm::quat(glm::vec3(0,0,0));
-	glm::vec3 scale;
+	glm::vec3 scale = glm::vec3(1, 1, 1);
 };

@@ -24,6 +24,11 @@ void main()
 		outColor = texture(texNormal, fragTexCoord);
 		return;
 	}
+	else if(setting.deferredType == 2)
+	{
+		outColor = texture(texAlbedo, fragTexCoord);
+		return;
+	}
 
 	vec4 tex1 = texture(texPosition, fragTexCoord);
 	vec4 tex2 = texture(texNormal, fragTexCoord);
@@ -33,16 +38,13 @@ void main()
 	float metal = tex1.a;
 	vec3 norm = tex2.rgb;
 	float roughness = tex2.a;
-	vec3 viewspacelightpos = (cam.worldToCamera * vec4(lightsource.position, 1.0)).xyz;
 
 	if(setting.computationType == 0)
 	{
-		outColor = vec4(ComputePBR(pos, viewspacelightpos, norm, metal, roughness, albedo), 1.0);
+		outColor = vec4(ComputePBR(pos, norm, metal, roughness, albedo), 1.0);
 	}
 	else
 	{
-		outColor = vec4(computeLight(pos, norm, viewspacelightpos), 1.0);
+		outColor = vec4(computeLight(pos, norm), 1.0);
 	}
-
-	//outColor = vec4(texture(texAlbedo, fragTexCoord));
 }

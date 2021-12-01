@@ -10,7 +10,6 @@ struct LightData
 	glm::vec3 specular;
 	float attenuationC3;
 
-
 	glm::vec3 position;
 	float theta;
 	glm::vec3 direction;
@@ -32,7 +31,7 @@ public:
 	virtual void update(float dt) override = 0;
 	virtual void close() override = 0;
 
-	virtual void* GetLightDataPointer() = 0;
+	virtual void* GetLightDataPointer(glm::mat4 viewMat) = 0;
 protected:
 
 	LightData lightdata;
@@ -47,7 +46,7 @@ public:
 	virtual void update(float dt) override;
 	virtual void close() override;
 
-	virtual void* GetLightDataPointer() override;
+	virtual void* GetLightDataPointer(glm::mat4 viewMat) override;
 private:
 
 };

@@ -1,6 +1,6 @@
 #include "common.glsl"
 
-layout(binding = 2) uniform lightData {
+struct lightData {
 	vec3 ambient;
 	float attenuationC1;
 	vec3 diffuse;
@@ -17,9 +17,14 @@ layout(binding = 2) uniform lightData {
 	float falloff;
 
 	int type;
-} lightsource;
+};
 
-vec3 computePointLight(vec3 surfacePos, vec3 normal, vec3 lightPos)
+layout(binding = 2) uniform lights {
+	lightData lightsources[MAX_LIGHT];
+	int lightNum;
+};
+
+vec3 computePointLight(vec3 surfacePos, vec3 normal, vec3 lightPos, lightData lightsource)
 {
 	vec3 surfaceToLight = lightPos - surfacePos;
 	float lightDistance = length(surfaceToLight);
@@ -46,21 +51,29 @@ vec3 computeSpotLight()
 	return vec3(0,0,0);
 }
 
-vec3 computeLight(vec3 surfacePos, vec3 normal, vec3 lightPos)
+vec3 computeLight(vec3 surfacePos, vec3 normal)
 {
-	if(lightsource.type == 0)
+	vec3 result;
+
+	for(int i = 0; i < lightNum; ++i)
 	{
-		return computePointLight(surfacePos, normal, lightPos);
+		lightData lightsource = lightsources[i];
+
+		if(lightsource.type == 0)
+		{
+			result += computePointLight(surfacePos, normal, lightsource.position, lightsource);
+		}
+		else if(lightsource.type == 1)
+		{
+			result += computeDirectionLight();
+		}
+		else if(lightsource.type == 2)
+		{
+			result += computeSpotLight();
+		}
 	}
-	else if(lightsource.type == 1)
-	{
-		return computeDirectionLight();
-	}
-	else if(lightsource.type == 2)
-	{
-		return computeSpotLight();
-	}
-	return vec3(0,0,0);
+
+	return result;
 }
 
 float ComputeNormalDistribution(float alpha, float ndoth)
@@ -113,15 +126,22 @@ vec3 ComputeBRDF(vec3 viewDir, vec3 lightDir, vec3 normDir, float metal, float r
 	return brdf;
 }
 
-vec3 ComputePBR(vec3 view, vec3 light, vec3 norm, float metal, float roughness, vec3 albedo)
+vec3 ComputePBR(vec3 view, vec3 norm, float metal, float roughness, vec3 albedo)
 {
-	float dis = length(light - view);
-	vec3 viewDir = normalize(-view);
-	vec3 lightDir = normalize(light - view);
-	vec3 normDir = normalize(norm);
+	vec3 result = vec3(0.0, 0.0, 0.0);
 
-	vec3 result = ComputeBRDF(viewDir, lightDir, normDir, metal, roughness, albedo);
+	for(int i = 0; i < lightNum; ++i)
+	{
+		lightData lightsource = lightsources[i];
+		float dis = length(lightsource.position - view);
+		vec3 viewDir = normalize(-view);
+		vec3 lightDir = normalize(lightsource.position - view);
+		vec3 normDir = normalize(norm);
 
+		result += ComputeBRDF(viewDir, lightDir, normDir, metal, roughness, albedo);
+	}
+
+	//ambient
 	result += albedo * 0.2;
 
 	//light color
