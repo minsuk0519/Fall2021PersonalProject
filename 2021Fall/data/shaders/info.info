@@ -1,0 +1,13 @@
+=====include=====
+common.glsl -> baserender.vert
+settings.glsl -> deferred.frag
+
+=====unifom binding location=====
+binding0 => Camera/cam in common.glsl
+
+binding1 => object/obj in object.glsl
+
+binding1 => GUI/setting in settings.glsl
+binding2 => lightData/lightsource in light.glsl
+binding3 => texPosition in deferred.frag
+binding4 => texNormal in deferred.frag

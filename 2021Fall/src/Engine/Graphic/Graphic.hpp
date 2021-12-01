@@ -3,6 +3,7 @@
 //standard library
 #include <array>
 #include <optional>
+#include <vector>
 
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -10,17 +11,32 @@
 
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
+#include "Engine/Misc/GUIEnum.hpp"
+
+//defined in common.glsl
+#define MAX_LIGHT 8
 
 enum FrameBufferIndex
 {
 	NORMALATTACHMENT,
 	POSITIONATTACHMENT,
+	ALBEDOATTACHMENT,
 	COLORATTACHMENT_MAX,
 	NORMALATTACHMENT_MSAA = NORMALATTACHMENT + COLORATTACHMENT_MAX,
 	POSITIONATTACHMENT_MSAA = POSITIONATTACHMENT + COLORATTACHMENT_MAX,
+	ALBEDOATTACHMENT_MSAA = ALBEDOATTACHMENT + COLORATTACHMENT_MAX,
 
 	DEPTHATTACHMENT = COLORATTACHMENT_MAX * 2,
 	FRAMEBUFFER_MAX = DEPTHATTACHMENT + 1,
+};
+
+enum UniformBufferIndex
+{
+	UNIFORM_CAMERA_TRANSFORM = 0,
+	UNIFORM_OBJECT_MATRIX,
+	UNIFORM_GUI_SETTING,
+	UNIFORM_LIGHTDATA,
+	UNIFORM_BUFFER_MAX
 };
 
 class Renderpass;
@@ -28,10 +44,13 @@ class DescriptorSet;
 class Buffer;
 class Image;
 class Camera;
+class Light;
+class Object;
 
 struct GUISetting
 {
-	int deferred_type = 0;
+	GUI_ENUM::DEFERRED_TYPE deferred_type = GUI_ENUM::DEFERRED_LIGHT;
+	GUI_ENUM::LIGHT_COMPUTATION_TYPE computation_type = GUI_ENUM::LIGHT_COMPUTE_PBR;
 };
 
 struct VertexInfo
@@ -46,7 +65,6 @@ struct DrawTarget
 {
 	std::vector<VertexInfo> vertexIndices;
 
-	std::optional<uint32_t> uniformIndex;
 	std::optional<uint32_t> instancebuffer;
 	std::optional<uint32_t> instancenumber;
 
@@ -81,7 +99,8 @@ private:
 
 	//should be moved later?
 	Camera* camera = nullptr;
-	glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
+	//glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
+	Object* objlist[3] = { nullptr };
 
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
@@ -109,6 +128,10 @@ private:
 
 	GUISetting guiSetting;
 
+	std::vector<uint32_t> uniformBuffers;
+
+	std::vector<Light*> lightEntities;
+
 private:
 	void SetupSwapChain();
 	void DefineDrawBehavior();
@@ -122,13 +145,4 @@ private:
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
-};
-
-#include <glm/mat4x4.hpp>
-
-struct transform
-{
-	glm::mat4 worldToCamera;
-	glm::mat4 cameraToNDC;
-	glm::mat4 objectMat;
 };

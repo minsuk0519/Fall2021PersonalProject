@@ -1,4 +1,5 @@
 #include "Camera.hpp"
+#include "Engine/Misc/settings.hpp"
 
 glm::vec3 Global_Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -10,17 +11,20 @@ void Camera::init()
 
 void Camera::update(float dt)
 {
-	world_to_camera = glm::lookAt(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);
+	camTransform.worldToCamera = glm::lookAtLH(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);
+	camTransform.cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
+	camTransform.cameraToNDC[1][1] *= -1;
 }
 
 void Camera::close()
 {
 }
 
-void Camera::Move(float forward, float right)
+void Camera::Move(float forward, float right, float up)
 {
 	transform.MovePosition(transform.GetDirectionVector() * forward);
 	transform.MovePosition(transform.GetRightVector() * right);
+	transform.MovePosition(transform.GetUpVector() * up);
 }
 
 void Camera::LookAround(float roll, float pitch)
@@ -28,8 +32,8 @@ void Camera::LookAround(float roll, float pitch)
 	static float proll = 0.0f;
 	static float ppitch = 0.0f;
 
-	proll += roll;
-	ppitch -= pitch;
+	proll -= roll;
+	ppitch += pitch;
 
 	ppitch = std::max(glm::radians(-89.5f), ppitch);
 	ppitch = std::min(glm::radians(89.5f), ppitch);
@@ -42,5 +46,15 @@ void Camera::LookAround(float roll, float pitch)
 
 glm::mat4 Camera::GetWorldToCamera() const
 {
-	return world_to_camera;
+	return camTransform.worldToCamera;
+}
+
+void* Camera::GetDataPointer()
+{
+	return reinterpret_cast<void*>(&camTransform);
+}
+
+uint32_t Camera::GetDataSize()
+{
+	return static_cast<uint32_t>(sizeof(Cameratransform));
 }

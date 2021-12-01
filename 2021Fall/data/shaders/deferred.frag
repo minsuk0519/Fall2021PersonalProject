@@ -1,19 +1,50 @@
 #version 450
 
-layout(binding = 0) uniform GUI {
-	int deferredType;
-} setting;
+#include "settings.glsl"
+#include "light.glsl"
 
 layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec2 fragPosition;
 
 layout(location = 0) out vec4 outColor;
 
-layout (binding = 1) uniform sampler2D samplerPosition;
-layout (binding = 2) uniform sampler2D samplerNormal;
+layout (binding = 3) uniform sampler2D texPosition;
+layout (binding = 4) uniform sampler2D texNormal;
+layout (binding = 5) uniform sampler2D texAlbedo;
 
 void main()
 {
-	if(setting.deferredType == 0)	outColor = texture(samplerPosition, fragTexCoord);
-	else if(setting.deferredType == 1) outColor = texture(samplerNormal, fragTexCoord);
+	if(setting.deferredType == 0)	
+	{
+		outColor = texture(texPosition, fragTexCoord);
+		return;
+	}
+	else if(setting.deferredType == 1) 
+	{
+		outColor = texture(texNormal, fragTexCoord);
+		return;
+	}
+	else if(setting.deferredType == 2)
+	{
+		outColor = texture(texAlbedo, fragTexCoord);
+		return;
+	}
+
+	vec4 tex1 = texture(texPosition, fragTexCoord);
+	vec4 tex2 = texture(texNormal, fragTexCoord);
+	vec3 albedo = texture(texAlbedo, fragTexCoord).rgb;
+	//albedo = pow(albedo, vec3(2.2));
+	vec3 pos = tex1.rgb;
+	float metal = tex1.a;
+	vec3 norm = tex2.rgb;
+	float roughness = tex2.a;
+
+	if(setting.computationType == 0)
+	{
+		outColor = vec4(ComputePBR(pos, norm, metal, roughness, albedo), 1.0);
+	}
+	else
+	{
+		outColor = vec4(computeLight(pos, norm), 1.0);
+	}
 }

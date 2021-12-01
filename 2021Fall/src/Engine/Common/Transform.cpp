@@ -5,6 +5,11 @@ glm::vec3 Transform::GetPosition() const
 	return position;
 }
 
+glm::vec3& Transform::GetPosition()
+{
+	return position;
+}
+
 glm::quat Transform::GetQuaternion() const
 {
 	return rotation;
@@ -64,7 +69,7 @@ glm::vec3 Transform::GetUpVector() const
 
 glm::vec3 Transform::GetDirectionVector() const
 {
-	return glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 0.0, -1.0));
+	return glm::rotate(glm::inverse(rotation), glm::vec3(0.0, 0.0, 1.0));
 }
 
 void Transform::Rotate(float pitch, float yaw, float roll)
