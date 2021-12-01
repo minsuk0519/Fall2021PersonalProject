@@ -23,9 +23,6 @@
     <ClCompile Include="src\Engine\Level\Level.cpp">
       <Filter>Engine\Level</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\Level\Object.cpp">
-      <Filter>Engine\Level</Filter>
-    </ClCompile>
     <ClCompile Include="src\Engine\Level\ObjectManager.cpp">
       <Filter>Engine\Level</Filter>
     </ClCompile>
@@ -53,23 +50,26 @@
     <ClCompile Include="src\Engine\Graphic\DescriptorSet.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\Graphic\Buffer.cpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Engine\Graphic\Image.cpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClCompile>
     <ClCompile Include="src\Engine\Input\Input.cpp">
       <Filter>Engine\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Engine\Graphic\Camera.cpp">
-      <Filter>Engine\Graphic</Filter>
     </ClCompile>
     <ClCompile Include="src\Engine\Common\Transform.cpp">
       <Filter>Engine\Common</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\Graphic\Light.cpp">
-      <Filter>Engine\Graphic</Filter>
+    <ClCompile Include="src\Engine\Memory\Image.cpp">
+      <Filter>Engine\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Memory\Buffer.cpp">
+      <Filter>Engine\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Entity\Camera.cpp">
+      <Filter>Engine\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Entity\Light.cpp">
+      <Filter>Engine\Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Engine\Entity\Object.cpp">
+      <Filter>Engine\Entity</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -93,6 +93,12 @@
     </Filter>
     <Filter Include="Engine\Common">
       <UniqueIdentifier>{c5480f75-f891-4a69-971b-d8ce396b7158}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Entity">
+      <UniqueIdentifier>{03c7632f-41cd-4653-ae09-f34d7a38401e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Memory">
+      <UniqueIdentifier>{809ce071-ef72-4d8e-8417-e6247df6d6a5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -123,9 +129,6 @@
     <ClInclude Include="src\Engine\Level\Level.hpp">
       <Filter>Engine\Level</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\Level\Object.hpp">
-      <Filter>Engine\Level</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\Level\ObjectManager.hpp">
       <Filter>Engine\Level</Filter>
     </ClInclude>
@@ -135,26 +138,29 @@
     <ClInclude Include="src\Engine\Graphic\DescriptorSet.hpp">
       <Filter>Engine\Graphic</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\Graphic\Buffer.hpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\Graphic\Image.hpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\Input\Input.hpp">
       <Filter>Engine\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\Graphic\Camera.hpp">
-      <Filter>Engine\Graphic</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Common\Transform.hpp">
       <Filter>Engine\Common</Filter>
     </ClInclude>
-    <ClInclude Include="src\Engine\Graphic\Light.hpp">
-      <Filter>Engine\Graphic</Filter>
-    </ClInclude>
     <ClInclude Include="src\Engine\Misc\GUIEnum.hpp">
       <Filter>Engine\Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Memory\Buffer.hpp">
+      <Filter>Engine\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Memory\Image.hpp">
+      <Filter>Engine\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Entity\Object.hpp">
+      <Filter>Engine\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Entity\Camera.hpp">
+      <Filter>Engine\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Entity\Light.hpp">
+      <Filter>Engine\Entity</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

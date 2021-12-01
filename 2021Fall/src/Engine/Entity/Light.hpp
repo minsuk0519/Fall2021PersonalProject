@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Level/Object.hpp"
+#include "Engine/Entity/Object.hpp"
 
 struct LightData
 {

@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Level/Object.hpp"
+#include "Object.hpp"
 
 //3rd party library
 #include <glm/glm.hpp>

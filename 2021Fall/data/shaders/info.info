@@ -11,3 +11,5 @@ binding1 => GUI/setting in settings.glsl
 binding2 => lightData/lightsource in light.glsl
 binding3 => texPosition in deferred.frag
 binding4 => texNormal in deferred.frag
+
+binding2 => lightMat in shadowmap.geom

@@ -4,12 +4,12 @@
 #include "VertexInfo.hpp"
 #include "Renderpass.hpp"
 #include "DescriptorSet.hpp"
-#include "Buffer.hpp"
-#include "Image.hpp"
-#include "Camera.hpp"
+#include "Engine/Memory/Buffer.hpp"
+#include "Engine/Memory/Image.hpp"
+#include "Engine/Entity/Camera.hpp"
 #include "Engine/Input/Input.hpp"
-#include "Light.hpp"
-#include "Engine/Level/Object.hpp"
+#include "Engine/Entity/Light.hpp"
+#include "Engine/Entity/Object.hpp"
 
 //standard library
 #include <stdexcept>
@@ -145,6 +145,73 @@ void Graphic::init()
         uint32_t instance = VulkanMemoryManager::CreateVertexBuffer(transform_matrices.data(), instance_size);
 
         drawtargets.push_back({ {{vertex, index, static_cast<uint32_t>(indices.size())}}, instance, INSTANCE_COUNT });
+    }
+
+    {
+        std::vector<PosNormal> vert = {
+            {{-1.0f, -1.0f, -1.0f},{0.0f, 0.0f, -1.0f}},
+            {{-1.0f, 1.0f, -1.0f},{0.0f, 0.0f, -1.0f}},
+            {{1.0f, -1.0f, -1.0f},{0.0f, 0.0f, -1.0f}},
+            {{1.0f, 1.0f, -1.0f},{0.0f, 0.0f, -1.0f}},
+
+            {{-1.0f, -1.0f, 1.0f},{0.0f, 0.0f, 1.0f}},
+            {{1.0f, -1.0f, 1.0f},{0.0f, 0.0f, 1.0f}},
+            {{-1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 1.0f}},
+            {{1.0f, 1.0f, 1.0f},{0.0f, 0.0f, 1.0f}},
+            
+            {{-1.0f, -1.0f, -1.0f},{0.0f, -1.0f, 0.0f}},
+            {{1.0f, -1.0f, -1.0f},{0.0f, -1.0f, 0.0f}},
+            {{-1.0f, -1.0f, 1.0f},{0.0f, -1.0f, 0.0f}},
+            {{1.0f, -1.0f, 1.0f},{0.0f, -1.0f, 0.0f}},
+            
+            {{-1.0f, 1.0f, -1.0f},{0.0f, 1.0f, 0.0f}},
+            {{-1.0f, 1.0f, 1.0f},{0.0f, 1.0f, 0.0f}},
+            {{1.0f, 1.0f, -1.0f},{0.0f, 1.0f, 0.0f}},
+            {{1.0f, 1.0f, 1.0f},{0.0f, 1.0f, 0.0f}},
+            
+            {{-1.0f, -1.0f, -1.0f},{-1.0f, 0.0f, 0.0f}},
+            {{-1.0f, -1.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
+            {{-1.0f, 1.0f, -1.0f},{-1.0f, 0.0f, 0.0f}},
+            {{-1.0f, 1.0f, 1.0f},{-1.0f, 0.0f, 0.0f}},
+            
+            {{1.0f, -1.0f, -1.0f},{1.0f, 0.0f, 0.0f}},
+            {{1.0f, 1.0f, -1.0f},{1.0f, 0.0f, 0.0f}},
+            {{1.0f, -1.0f, 1.0f},{1.0f, 0.0f, 0.0f}},
+            {{1.0f, 1.0f, 1.0f},{1.0f, 0.0f, 0.0f}},
+        };
+
+        std::vector<uint32_t> indices = {
+            0, 1, 2,
+            1, 3, 2,
+
+            4, 5, 6,
+            5, 7, 6,
+
+            8, 9, 10,
+            9, 11, 10,
+
+            12, 13, 14,
+            13, 15, 14,
+
+            16, 17, 18,
+            17, 19, 18,
+
+            20, 21, 22,
+            21, 23, 22,
+        };
+
+        size_t vertexbuffermemorysize = vert.size() * sizeof(PosNormal);
+        uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vertexbuffermemorysize);
+
+        //index
+        size_t indexbuffermemorysize = indices.size() * sizeof(uint32_t);
+        uint32_t index = VulkanMemoryManager::CreateIndexBuffer(indices.data(), indexbuffermemorysize);
+
+        glm::vec3 zero = glm::vec3(0, 0, 0);
+        size_t instance_size = sizeof(glm::vec3);
+        uint32_t instance = VulkanMemoryManager::CreateVertexBuffer(&zero, instance_size);
+
+        drawtargets.push_back({ {{vertex, index, static_cast<uint32_t>(indices.size())}}, instance, 1 });
     }
 
     //create texture image
@@ -334,10 +401,8 @@ void Graphic::update(float dt)
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        std::array<VkCommandBuffer, 1> bufferlist = { vulkanCommandBuffers };
-
-        submitInfo.commandBufferCount = static_cast<uint32_t>(bufferlist.size());
-        submitInfo.pCommandBuffers = bufferlist.data();
+        submitInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
+        submitInfo.pCommandBuffers = vulkanCommandBuffers.data();
 
         if (vkQueueSubmit(application->GetGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
         {
@@ -518,11 +583,11 @@ void Graphic::SetupSwapChain()
 
         framebufferImages[FrameBufferIndex::POSITIONATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
         framebufferImages[FrameBufferIndex::NORMALATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, vulkanMSAASamples);
-        framebufferImages[FrameBufferIndex::ALBEDOATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, vulkanMSAASamples);
+        framebufferImages[FrameBufferIndex::ALBEDOATTACHMENT] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R8G8B8A8_UNORM, vulkanMSAASamples);
 
         framebufferImages[FrameBufferIndex::POSITIONATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
         framebufferImages[FrameBufferIndex::NORMALATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT);
-        framebufferImages[FrameBufferIndex::ALBEDOATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vulkanSwapChainImageFormat, VK_SAMPLE_COUNT_1_BIT);
+        framebufferImages[FrameBufferIndex::ALBEDOATTACHMENT_MSAA] = VulkanMemoryManager::CreateFrameBufferImage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT);
 
         //depth buffer
         vulkanDepthFormat = findSupportedFormat({
@@ -541,7 +606,8 @@ void Graphic::CloseSwapChain()
     postdescriptorSet->close();
     delete postdescriptorSet;
 
-    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), 1, &vulkanCommandBuffers);
+    vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
+    vulkanCommandBuffers.clear();
     vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanpostCommandBuffer.size()), vulkanpostCommandBuffer.data());
 
     renderpass->close();
@@ -853,13 +919,15 @@ void Graphic::DefineDrawBehavior()
 
     //create command buffer
     {
+        vulkanCommandBuffers.resize(2);
+
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = application->GetCommandPool();
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
 
-        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, &vulkanCommandBuffers) != VK_SUCCESS)
+        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate command buffers!");
         }
@@ -870,28 +938,61 @@ void Graphic::DefineDrawBehavior()
             beginInfo.flags = 0;
             beginInfo.pInheritanceInfo = nullptr;
 
-            if (vkBeginCommandBuffer(vulkanCommandBuffers, &beginInfo) != VK_SUCCESS)
+            if (vkBeginCommandBuffer(vulkanCommandBuffers[0], &beginInfo) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
 
-            renderpass->beginRenderpass(vulkanCommandBuffers);
+            renderpass->beginRenderpass(vulkanCommandBuffers[0]);
 
-            vkCmdBindPipeline(vulkanCommandBuffers, VK_PIPELINE_BIND_POINT_GRAPHICS,
+            vkCmdBindPipeline(vulkanCommandBuffers[0], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers, graphicPipeline->GetPipelinLayout(), 0);
-            DrawDrawtarget(vulkanCommandBuffers, drawtargets[1]);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], graphicPipeline->GetPipelinLayout(), 0);
+            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers, graphicPipeline->GetPipelinLayout(), 1);
-            DrawDrawtarget(vulkanCommandBuffers, drawtargets[1]);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], graphicPipeline->GetPipelinLayout(), 1);
+            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers, graphicPipeline->GetPipelinLayout(), 2);
-            DrawDrawtarget(vulkanCommandBuffers, drawtargets[1]);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], graphicPipeline->GetPipelinLayout(), 2);
+            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
 
-            vkCmdEndRenderPass(vulkanCommandBuffers);
+            vkCmdEndRenderPass(vulkanCommandBuffers[0]);
 
-            if (vkEndCommandBuffer(vulkanCommandBuffers) != VK_SUCCESS)
+            if (vkEndCommandBuffer(vulkanCommandBuffers[0]) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to recored command buffer!");
+            }
+        }
+
+        {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = 0;
+            beginInfo.pInheritanceInfo = nullptr;
+
+            if (vkBeginCommandBuffer(vulkanCommandBuffers[1], &beginInfo) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to begin recording command buffer!");
+            }
+
+            renderpass->beginRenderpass(vulkanCommandBuffers[1]);
+
+            vkCmdBindPipeline(vulkanCommandBuffers[1], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                graphicPipeline->GetPipeline());
+
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], graphicPipeline->GetPipelinLayout(), 0);
+            DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
+
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], graphicPipeline->GetPipelinLayout(), 1);
+            DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
+
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], graphicPipeline->GetPipelinLayout(), 2);
+            DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
+
+            vkCmdEndRenderPass(vulkanCommandBuffers[1]);
+
+            if (vkEndCommandBuffer(vulkanCommandBuffers[1]) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to recored command buffer!");
             }

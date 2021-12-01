@@ -1,6 +1,6 @@
 #include "Level.hpp"
 #include "ObjectManager.hpp"
-#include "Engine/Graphic/Camera.hpp"
+#include "Engine/Entity/Camera.hpp"
 
 void Level::init()
 {

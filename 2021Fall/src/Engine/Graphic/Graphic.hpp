@@ -83,7 +83,7 @@ public:
 	void drawGUI() override;
 
 private:
-	VkCommandBuffer vulkanCommandBuffers;
+	std::vector<VkCommandBuffer> vulkanCommandBuffers;
 	std::vector<VkSemaphore> vulkanImageAvailableSemaphores;
 	std::vector<VkSemaphore> vulkanRenderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
