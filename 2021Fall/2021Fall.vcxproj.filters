@@ -71,6 +71,9 @@
     <ClCompile Include="src\Engine\Entity\Object.cpp">
       <Filter>Engine\Entity</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Graphic\Descriptor.cpp">
+      <Filter>Engine\Graphic</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -161,6 +164,9 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Entity\Light.hpp">
       <Filter>Engine\Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Graphic\Descriptor.hpp">
+      <Filter>Engine\Graphic</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

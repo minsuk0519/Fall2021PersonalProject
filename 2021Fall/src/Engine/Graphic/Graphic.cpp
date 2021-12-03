@@ -10,6 +10,7 @@
 #include "Engine/Input/Input.hpp"
 #include "Engine/Entity/Light.hpp"
 #include "Engine/Entity/Object.hpp"
+#include "Engine/Graphic/Descriptor.hpp"
 
 //standard library
 #include <stdexcept>
@@ -684,7 +685,7 @@ void Graphic::DefineDrawBehavior()
 {
     {
         descriptorSet = new DescriptorSet(vulkanDevice);
-        DescriptorSet::Descriptor descriptor;
+        Descriptor descriptor;
         descriptor.binding = 0;
         VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
         descriptor.bufferInfo = bufferInfo;
@@ -715,7 +716,7 @@ void Graphic::DefineDrawBehavior()
 
     {
         postdescriptorSet = new DescriptorSet(vulkanDevice);
-        DescriptorSet::Descriptor descriptor;
+        Descriptor descriptor;
 
         descriptor.binding = 0;
         VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();

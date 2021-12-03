@@ -6,6 +6,8 @@
 //standard library
 #include <vector>
 
+struct Descriptor;
+
 class DescriptorSet
 {
 public:
@@ -15,16 +17,6 @@ public:
 	void close();
 
 public:
-	struct Descriptor
-	{
-		VkDescriptorType type;
-		uint32_t binding;
-		VkShaderStageFlags stage;
-
-		VkDescriptorBufferInfo bufferInfo;
-		VkDescriptorImageInfo imageInfo;
-	};
-
 	void AddDescriptor(Descriptor des);
 	void CreateDescriptorSet();
 	void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t offset);

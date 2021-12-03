@@ -12,7 +12,7 @@ void Camera::init()
 void Camera::update(float dt)
 {
 	camTransform.worldToCamera = glm::lookAtLH(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);
-	camTransform.cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 100.0f);
+	camTransform.cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 500.0f);
 	camTransform.cameraToNDC[1][1] *= -1;
 }
 

@@ -31,6 +31,7 @@
     <ClCompile Include="src\Engine\Entity\Camera.cpp" />
     <ClCompile Include="src\Engine\Entity\Light.cpp" />
     <ClCompile Include="src\Engine\Entity\Object.cpp" />
+    <ClCompile Include="src\Engine\Graphic\Descriptor.cpp" />
     <ClCompile Include="src\Engine\Graphic\DescriptorSet.cpp" />
     <ClCompile Include="src\Engine\Graphic\Graphic.cpp" />
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp" />
@@ -50,6 +51,7 @@
     <ClInclude Include="src\Engine\Entity\Camera.hpp" />
     <ClInclude Include="src\Engine\Entity\Light.hpp" />
     <ClInclude Include="src\Engine\Entity\Object.hpp" />
+    <ClInclude Include="src\Engine\Graphic\Descriptor.hpp" />
     <ClInclude Include="src\Engine\Graphic\DescriptorSet.hpp" />
     <ClInclude Include="src\Engine\Graphic\Graphic.hpp" />
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp" />

@@ -24,6 +24,8 @@ private:
 	VkPipelineLayout vulkanpipelineLayout;
 	VkPipeline vulkanPipeline;
 
+	VkPipelineCache vulkanpipelinecache = VK_NULL_HANDLE;
+
 	VkShaderModule CreatevulkanShaderModule(const std::vector<char>& code);
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;

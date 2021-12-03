@@ -1,4 +1,5 @@
 #include "DescriptorSet.hpp"
+#include "Descriptor.hpp"
 
 //standard library
 #include <stdexcept>
@@ -88,7 +89,7 @@ void DescriptorSet::CreateDescriptorSet()
             if (descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
             {
                 ++dynamic_count;
-                dynamic_offset.push_back(descriptor.bufferInfo.range);
+                dynamic_offset.push_back(static_cast<uint32_t>(descriptor.bufferInfo.range));
             }
         }
         else

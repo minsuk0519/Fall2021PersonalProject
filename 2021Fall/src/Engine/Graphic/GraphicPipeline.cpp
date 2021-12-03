@@ -7,6 +7,16 @@ GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
 void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo createinfo, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum)
 {
+	if (vulkanpipelinecache == VK_NULL_HANDLE)
+	{
+		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+		if (vkCreatePipelineCache(vulkanDevice, &pipelineCacheCreateInfo, nullptr, &vulkanpipelinecache) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create pipeline cache!");
+		}
+	}
+
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -119,7 +129,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo c
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	if (vkCreateGraphicsPipelines(vulkanDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+	if (vkCreateGraphicsPipelines(vulkanDevice, vulkanpipelinecache, 1, &pipelineInfo, nullptr,
 		&vulkanPipeline) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create graphics pipeline!");
@@ -136,6 +146,7 @@ void GraphicPipeline::close()
 {
 	vkDestroyPipeline(vulkanDevice, vulkanPipeline, nullptr);
 	vkDestroyPipelineLayout(vulkanDevice, vulkanpipelineLayout, nullptr);
+	vkDestroyPipelineCache(vulkanDevice, vulkanpipelinecache, nullptr);
 }
 
 VkPipeline GraphicPipeline::GetPipeline() const
