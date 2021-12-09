@@ -5,7 +5,7 @@
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
-void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo createinfo, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum)
+void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum, std::vector<VkPipelineShaderStageCreateInfo> shadermodules)
 {
 	if (vulkanpipelinecache == VK_NULL_HANDLE)
 	{
@@ -105,15 +105,21 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo c
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
 
-	if (vkCreatePipelineLayout(vulkanDevice, &createinfo, nullptr, &vulkanpipelineLayout) != VK_SUCCESS)
+	/*for (auto shader : shadermodules)
 	{
-		throw std::runtime_error("failed to create pipeline layout!");
-	}
+		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vertShaderStageInfo.stage = flag;
+		vertShaderStageInfo.module = shader;
+		vertShaderStageInfo.pName = "main";
+
+		shaderStages.push_back(vertShaderStageInfo);
+	}*/
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-	pipelineInfo.pStages = shaderStages.data();
+	pipelineInfo.stageCount = static_cast<uint32_t>(shadermodules.size());
+	pipelineInfo.pStages = shadermodules.data();
 	pipelineInfo.pVertexInputState = &inputstate;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
@@ -123,7 +129,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo c
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = nullptr;
 
-	pipelineInfo.layout = vulkanpipelineLayout;
+	pipelineInfo.layout = pipelinelayout;
 
 	pipelineInfo.renderPass = renderpass;
 	pipelineInfo.subpass = 0;
@@ -135,28 +141,22 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo c
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
 
-	for (auto& shaderstage : shaderStages)
-	{
-		vkDestroyShaderModule(vulkanDevice, shaderstage.module, nullptr);
-	}
-	shaderStages.clear();
+	//for (auto& shaderstage : shaderStages)
+	//{
+	//	vkDestroyShaderModule(vulkanDevice, shaderstage.module, nullptr);
+	//}
+	//shaderStages.clear();
 }
 
 void GraphicPipeline::close()
 {
 	vkDestroyPipeline(vulkanDevice, vulkanPipeline, nullptr);
-	vkDestroyPipelineLayout(vulkanDevice, vulkanpipelineLayout, nullptr);
 	vkDestroyPipelineCache(vulkanDevice, vulkanpipelinecache, nullptr);
 }
 
 VkPipeline GraphicPipeline::GetPipeline() const
 {
 	return vulkanPipeline;
-}
-
-VkPipelineLayout GraphicPipeline::GetPipelinLayout() const
-{
-	return vulkanpipelineLayout;
 }
 
 void GraphicPipeline::AddShaderStages(const char* shaderpath, VkShaderStageFlagBits flag)

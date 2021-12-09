@@ -46,6 +46,7 @@ class Image;
 class Camera;
 class Light;
 class Object;
+class DescriptorManager;
 
 struct GUISetting
 {
@@ -127,6 +128,7 @@ private:
 	uint32_t swapchainImageSize;
 
 	GUISetting guiSetting;
+	DescriptorManager* descriptorManager = nullptr;
 
 	std::vector<uint32_t> uniformBuffers;
 

@@ -11,17 +11,15 @@ class GraphicPipeline
 public:
 	GraphicPipeline(VkDevice device);
 
-	void init(VkRenderPass renderpass, VkPipelineLayoutCreateInfo createinfo, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum);
+	void init(VkRenderPass renderpass, VkPipelineLayout pipelinelayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum, std::vector<VkPipelineShaderStageCreateInfo> shadermodules);
 	void close();
 
 	VkPipeline GetPipeline() const;
-	VkPipelineLayout GetPipelinLayout() const;
 
 	void AddShaderStages(const char* shaderpath, VkShaderStageFlagBits flag);
 private:
 	VkDevice vulkanDevice;
 
-	VkPipelineLayout vulkanpipelineLayout;
 	VkPipeline vulkanPipeline;
 
 	VkPipelineCache vulkanpipelinecache = VK_NULL_HANDLE;

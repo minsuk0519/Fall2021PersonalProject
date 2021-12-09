@@ -39,6 +39,9 @@ void Graphic::init()
 
     SetupSwapChain();
 
+    descriptorManager = new DescriptorManager(vulkanDevice);
+    descriptorManager->init();
+
     //uniform
     {
         uniformBuffers.resize(UNIFORM_BUFFER_MAX);
@@ -482,6 +485,9 @@ void Graphic::close()
     }
     images.clear();
 
+    descriptorManager->close();
+    delete descriptorManager;
+
     VulkanMemoryManager::Close();
 
     CloseSwapChain();
@@ -683,76 +689,98 @@ void Graphic::DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget&
 
 void Graphic::DefineDrawBehavior()
 {
+    //{
+    //    descriptorSet = new DescriptorSet(vulkanDevice);
+    //    Descriptor descriptor;
+    //    descriptor.binding = 0;
+    //    VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
+    //    descriptor.bufferInfo = bufferInfo;
+    //    descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //    descriptorSet->AddDescriptor(descriptor);
+
+    //    descriptor.binding = 1;
+    //    bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_OBJECT_MATRIX])->GetDescriptorInfo();
+    //    descriptor.bufferInfo = bufferInfo;
+    //    descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    //    descriptorSet->AddDescriptor(descriptor);
+
+    //    descriptorSet->CreateDescriptorSet();
+    //}
     {
-        descriptorSet = new DescriptorSet(vulkanDevice);
-        Descriptor descriptor;
-        descriptor.binding = 0;
-        VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
-        descriptor.bufferInfo = bufferInfo;
-        descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorSet->AddDescriptor(descriptor);
+        std::vector<DescriptorData> data;
 
-        descriptor.binding = 1;
-        bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_OBJECT_MATRIX])->GetDescriptorInfo();
-        descriptor.bufferInfo = bufferInfo;
-        descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        descriptorSet->AddDescriptor(descriptor);
+        data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
+        data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_OBJECT_MATRIX])->GetDescriptorInfo();
 
-        //descriptor.binding = 1;
-        //VkDescriptorImageInfo imageInfo{};
-        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //imageInfo.imageView = images[0]->GetImageView();
-        //imageInfo.sampler = vulkanTextureSampler;
-
-        //descriptor.imageInfo = imageInfo;
-        //descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        //descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        //descriptorSet->AddDescriptor(descriptor);
-
-        descriptorSet->CreateDescriptorSet();
+        descriptorSet = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
     }
 
+    //{
+    //    postdescriptorSet = new DescriptorSet(vulkanDevice);
+    //    Descriptor descriptor;
+
+    //    descriptor.binding = 0;
+    //    VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
+    //    descriptor.bufferInfo = bufferInfo;
+    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //    postdescriptorSet->AddDescriptor(descriptor);
+    //    
+    //    descriptor.binding = 1;
+    //    descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
+    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //    postdescriptorSet->AddDescriptor(descriptor);
+
+    //    descriptor.binding = 2;
+    //    descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_LIGHTDATA])->GetDescriptorInfo();
+    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //    postdescriptorSet->AddDescriptor(descriptor);
+
+    //    descriptor.binding = 3;
+    //    VkDescriptorImageInfo imageInfo{};
+    //    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //    imageInfo.sampler = vulkanTextureSampler;
+    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    //    descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    //    for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
+    //    {
+    //        descriptor.binding = i + 3;
+    //        imageInfo.imageView = framebufferImages[i + COLORATTACHMENT_MAX]->GetImageView();
+    //        descriptor.imageInfo = imageInfo;
+    //        postdescriptorSet->AddDescriptor(descriptor);
+    //    }
+
+    //    postdescriptorSet->CreateDescriptorSet();
+    //}
     {
-        postdescriptorSet = new DescriptorSet(vulkanDevice);
-        Descriptor descriptor;
+        std::vector<DescriptorData> data;
 
-        descriptor.binding = 0;
-        VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
-        descriptor.bufferInfo = bufferInfo;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        postdescriptorSet->AddDescriptor(descriptor);
-        
-        descriptor.binding = 1;
-        descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        postdescriptorSet->AddDescriptor(descriptor);
+        data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
+        data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
+        data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_LIGHTDATA])->GetDescriptorInfo();
 
-        descriptor.binding = 2;
-        descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_LIGHTDATA])->GetDescriptorInfo();
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        postdescriptorSet->AddDescriptor(descriptor);
-
-        descriptor.binding = 3;
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.sampler = vulkanTextureSampler;
-        descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
         for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
         {
-            descriptor.binding = i + 3;
             imageInfo.imageView = framebufferImages[i + COLORATTACHMENT_MAX]->GetImageView();
-            descriptor.imageInfo = imageInfo;
-            postdescriptorSet->AddDescriptor(descriptor);
+            data.push_back(DescriptorData());
+            data.back().imageinfo = imageInfo;
         }
 
-        postdescriptorSet->CreateDescriptorSet();
+        postdescriptorSet = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
     }
 
     {
@@ -853,9 +881,6 @@ void Graphic::DefineDrawBehavior()
     {
         graphicPipeline = new GraphicPipeline(vulkanDevice);
 
-        graphicPipeline->AddShaderStages("data/shaders/baserendervert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        graphicPipeline->AddShaderStages("data/shaders/baserenderfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
-
         std::array<VkVertexInputBindingDescription, 2> bindingDescriptions;
         bindingDescriptions[0] = PosNormal::getBindingDescription();
         bindingDescriptions[1].binding = 1;
@@ -878,23 +903,13 @@ void Graphic::DefineDrawBehavior()
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        std::array<VkDescriptorSetLayout, 1> desciptorsetlayouts{ descriptorSet->GetSetLayout() };
+        VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER);
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(desciptorsetlayouts.size());
-        pipelineLayoutInfo.pSetLayouts = desciptorsetlayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-        graphicPipeline->init(renderpass->getRenderpass(), pipelineLayoutInfo, vulkanMSAASamples, vertexInputInfo, 3);
+        graphicPipeline->init(renderpass->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER));
     }
 
     {
         postgraphicPipeline = new GraphicPipeline(vulkanDevice);
-
-        postgraphicPipeline->AddShaderStages("data/shaders/deferredvert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-        postgraphicPipeline->AddShaderStages("data/shaders/deferredfrag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
 
         VkVertexInputBindingDescription bindingDescription = PosTexVertex::getBindingDescription();
         auto attributeDescriptions = PosTexVertex::getAttributeDescriptions();
@@ -906,16 +921,9 @@ void Graphic::DefineDrawBehavior()
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
         vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
-        std::array<VkDescriptorSetLayout, 1> desciptorsetlayouts{postdescriptorSet->GetSetLayout()};
+        VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED);
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(desciptorsetlayouts.size());
-        pipelineLayoutInfo.pSetLayouts = desciptorsetlayouts.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
-
-        postgraphicPipeline->init(postrenderpass->getRenderpass(), pipelineLayoutInfo, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1);
+        postgraphicPipeline->init(postrenderpass->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DEFERRED));
     }
 
     //create command buffer
@@ -949,13 +957,13 @@ void Graphic::DefineDrawBehavior()
             vkCmdBindPipeline(vulkanCommandBuffers[0], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], graphicPipeline->GetPipelinLayout(), 0);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 0);
             DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], graphicPipeline->GetPipelinLayout(), 1);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 1);
             DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], graphicPipeline->GetPipelinLayout(), 2);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 2);
             DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
 
             vkCmdEndRenderPass(vulkanCommandBuffers[0]);
@@ -982,13 +990,13 @@ void Graphic::DefineDrawBehavior()
             vkCmdBindPipeline(vulkanCommandBuffers[1], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 graphicPipeline->GetPipeline());
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], graphicPipeline->GetPipelinLayout(), 0);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 0);
             DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], graphicPipeline->GetPipelinLayout(), 1);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 1);
             DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
 
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], graphicPipeline->GetPipelinLayout(), 2);
+            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 2);
             DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
 
             vkCmdEndRenderPass(vulkanCommandBuffers[1]);
@@ -1031,7 +1039,7 @@ void Graphic::DefineDrawBehavior()
             vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
                 postgraphicPipeline->GetPipeline());
 
-            postdescriptorSet->BindDescriptorSet(vulkanpostCommandBuffer[i], postgraphicPipeline->GetPipelinLayout(), 0);
+            postdescriptorSet->BindDescriptorSet(vulkanpostCommandBuffer[i], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED), 0);
 
             DrawDrawtarget(vulkanpostCommandBuffer[i], drawtargets[0]);
 
