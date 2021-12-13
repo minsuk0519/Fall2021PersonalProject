@@ -16,7 +16,7 @@ struct Cameratransform
 class Camera : public Object
 {
 public:
-	Camera();
+	Camera(unsigned int objid, std::string objname);
 	virtual void init() override;
 	virtual void update(float dt) override;
 	virtual void close() override;

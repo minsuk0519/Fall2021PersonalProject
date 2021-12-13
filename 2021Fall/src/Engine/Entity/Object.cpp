@@ -1,4 +1,5 @@
 #include "Object.hpp"
+#include "Engine/Memory/Buffer.hpp"
 
 //3rd party library
 #include <glm/glm.hpp>
@@ -11,6 +12,8 @@ void Object::init()
 void Object::update(float dt)
 {
 	uniform.objectMat = glm::translate(glm::mat4(1.0f), transform.position) * glm::toMat4(transform.rotation) * glm::scale(glm::mat4(1.0f), transform.scale);
+
+	VulkanMemoryManager::MapMemory(UNIFORM_OBJECT_MATRIX, &uniform, sizeof(ObjectUniform));
 }
 
 void Object::close()

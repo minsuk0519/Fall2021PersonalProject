@@ -44,23 +44,17 @@ void Graphic::init()
 
     //uniform
     {
-        uniformBuffers.resize(UNIFORM_BUFFER_MAX);
-
         VkDeviceSize bufferSize = sizeof(Cameratransform);
-        uint32_t uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
-        uniformBuffers[UNIFORM_CAMERA_TRANSFORM] = uniform;
+        uint32_t uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_CAMERA_TRANSFORM, bufferSize);
 
         bufferSize = 128;// sizeof(ObjectUniform);
-        uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize, 3);
-        uniformBuffers[UNIFORM_OBJECT_MATRIX] = uniform;
+        uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_OBJECT_MATRIX, bufferSize);
 
         bufferSize = sizeof(GUISetting);
-        uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
-        uniformBuffers[UNIFORM_GUI_SETTING] = uniform;
+        uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_GUI_SETTING, bufferSize);
 
         bufferSize = MAX_LIGHT * 96 + sizeof(int);
-        uniform = VulkanMemoryManager::CreateUniformBuffer(bufferSize);
-        uniformBuffers[UNIFORM_LIGHTDATA] = uniform;
+        uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_LIGHTDATA, bufferSize);
     }
 
     //make quad
@@ -293,40 +287,6 @@ void Graphic::init()
             }
         }
     }
-
-    camera = new Camera();
-    camera->GetTransform().SetPosition(glm::vec3(0.0f, 3.0f, -5.0f));
-
-    Light* lightEntity = new PointLight();
-    lightEntity->init();
-    lightEntity->id = 0;
-    lightEntities.push_back(lightEntity);
-    lightEntity = new PointLight();
-    lightEntity->init();
-    lightEntity->id = 1;
-    lightEntities.push_back(lightEntity);
-    lightEntity = new PointLight();
-    lightEntity->init();
-    lightEntity->id = 2;
-    lightEntities.push_back(lightEntity);
-    lightEntity = new PointLight();
-    lightEntity->init();
-    lightEntity->id = 3;
-    lightEntities.push_back(lightEntity);
-
-    objlist[0] = new Object(0);
-    objlist[1] = new Object(1);
-    objlist[2] = new Object(2);
-    objlist[0]->GetTransform().SetScale(glm::vec3(1.0f));
-    objlist[0]->GetTransform().SetPosition(glm::vec3(-7.5f, 0.0f, 0.0f));
-    objlist[0]->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.955008f, 0.637427f, 0.538163f), 1.0f, 1.0f });
-    objlist[1]->GetTransform().SetScale(glm::vec3(1.0f));
-    objlist[1]->GetTransform().SetPosition(glm::vec3(7.5f, 0.0f, 0.0f));
-    objlist[1]->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(1.0f, 0.765557f, 0.336057f), 1.0f, 1.0f });
-    objlist[2]->GetTransform().SetScale(glm::vec3(1.0f));
-    objlist[2]->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-    objlist[2]->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.659777f, 0.608679f, 0.525649f), 1.0f, 1.0f });
-
 }
 
 void Graphic::update(float dt)
@@ -358,46 +318,7 @@ void Graphic::update(float dt)
         static float time = 0; 
         //time += dt * 0.01f;
 
-        if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(10.0f * dt, 0.0f);
-        if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-10.0f * dt, 0.0f);
-        if (Input::isPressed(KeyBinding::KEY_RIGHT)) camera->Move(0.0f, 10.0f * dt);
-        if (Input::isPressed(KeyBinding::KEY_LEFT)) camera->Move(0.0f, -10.0f * dt);
-        //if (Input::isPressed(KeyBinding::MOUSE_LEFT)) camera->Move(0.0f, 0.0f, dt);
-        //if (Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->Move(0.0f, 0.0f, -dt);
-        if(Input::isPressed(KeyBinding::MOUSE_RIGHT)) camera->LookAround(Input::GetMouseMove().x * dt, Input::GetMouseMove().y * dt);
-
-        //std::cout << "cam pos : " << camera->GetTransform().GetPosition().x << ", " << camera->GetTransform().GetPosition().y << ", " << camera->GetTransform().GetPosition().z << std::endl;
-        //std::cout << "driection vector : " << camera->GetTransform().GetDirectionVector().x << ", " << camera->GetTransform().GetDirectionVector().y << ", " << camera->GetTransform().GetDirectionVector().z << std::endl;
-
-        camera->update(dt);
-        for (auto light : lightEntities)
-        {
-            light->update(dt);
-        }
-
-        objlist[0]->update(dt);
-        objlist[1]->update(dt);
-        objlist[2]->update(dt);
-
-        ObjectUniform obj0 = objlist[0]->GetUniform();
-        ObjectUniform obj1 = objlist[1]->GetUniform();
-        ObjectUniform obj2 = objlist[2]->GetUniform();
-
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_CAMERA_TRANSFORM], camera->GetDataPointer());
-
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &obj0, sizeof(ObjectUniform));
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &obj1, sizeof(ObjectUniform), 128);
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_OBJECT_MATRIX], &obj2, sizeof(ObjectUniform), 256);
-
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_GUI_SETTING], &guiSetting);
-
-        uint32_t size = static_cast<uint32_t>(lightEntities.size());
-        for (uint32_t i = 0; i < size; ++i)
-        {
-            VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_LIGHTDATA], lightEntities[i]->GetLightDataPointer(camera->GetWorldToCamera()), sizeof(LightData), i * 96);
-        }
-        int data = size;
-        VulkanMemoryManager::MapMemory(uniformBuffers[UNIFORM_LIGHTDATA], &data, sizeof(int), MAX_LIGHT * 96);
+        VulkanMemoryManager::MapMemory(UNIFORM_GUI_SETTING, &guiSetting);
     }
 
     //pre render
@@ -491,68 +412,37 @@ void Graphic::close()
     VulkanMemoryManager::Close();
 
     CloseSwapChain();
-
-    camera->close();
-    delete camera;
-
-    for (auto light : lightEntities)
-    {
-        light->close();
-        delete light;
-    }
-    lightEntities.clear();
-
-    objlist[0]->close();
-    delete objlist[0];
-    objlist[1]->close();
-    delete objlist[1];
-    objlist[2]->close();
-    delete objlist[2];
 }
 
 Graphic::~Graphic() {}
 
 void Graphic::drawGUI()
 {
-    ImGui::Begin(name.c_str());
-
-    if (ImGui::CollapsingHeader("Info"))
+    if (ImGui::CollapsingHeader("Info##Graphic"))
     {
         ImGui::Text("Swapchain num : % d", swapchainImageSize);
 
         ImGui::Text("Samples : %d", vulkanMSAASamples);
     }
 
-    if (ImGui::CollapsingHeader("Object"))
+    if (ImGui::CollapsingHeader("Setting##Graphic"))
     {
-        static int objNum = 0;
-        ImGui::InputInt("ObjectNum", &objNum);
-        objlist[objNum]->GuiSetting();
-    }
-
-    if (ImGui::CollapsingHeader("Setting"))
-    {
-        if (ImGui::Button("PositionTexture"))
+        if (ImGui::Button("PositionTexture##GraphicSetting"))
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_POSITION;
         } ImGui::SameLine();
-        if (ImGui::Button("NormalTexture"))
+        if (ImGui::Button("NormalTexture##GraphicSetting"))
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_NORMAL;
         } ImGui::SameLine();
-        if (ImGui::Button("DiffuseTexture"))
+        if (ImGui::Button("DiffuseTexture##GraphicSetting"))
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_ALBEDO;
         } ImGui::SameLine();
-        if (ImGui::Button("Light"))
+        if (ImGui::Button("Light##GraphicSetting"))
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_LIGHT;
         }
-    }
-
-    for (auto light : lightEntities)
-    {
-        ImGui::DragFloat3(("Light position##LITPOS" + std::to_string(light->id)).c_str(), &(light->GetTransform().GetPosition().x));
     }
 
     std::array<bool, GUI_ENUM::LIGHT_COMPUTE_MAX> lightcomputationbool = { false };
@@ -567,8 +457,6 @@ void Graphic::drawGUI()
     {
         application->framebufferSizeUpdate = true;
     }
-
-    ImGui::End();
 }
 
 void Graphic::SetupSwapChain()
@@ -689,85 +577,26 @@ void Graphic::DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget&
 
 void Graphic::DefineDrawBehavior()
 {
-    //{
-    //    descriptorSet = new DescriptorSet(vulkanDevice);
-    //    Descriptor descriptor;
-    //    descriptor.binding = 0;
-    //    VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
-    //    descriptor.bufferInfo = bufferInfo;
-    //    descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //    descriptorSet->AddDescriptor(descriptor);
-
-    //    descriptor.binding = 1;
-    //    bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_OBJECT_MATRIX])->GetDescriptorInfo();
-    //    descriptor.bufferInfo = bufferInfo;
-    //    descriptor.stage = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    //    descriptorSet->AddDescriptor(descriptor);
-
-    //    descriptorSet->CreateDescriptorSet();
-    //}
     {
         std::vector<DescriptorData> data;
 
         data.push_back(DescriptorData());
-        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_CAMERA_TRANSFORM)->GetDescriptorInfo();
         data.push_back(DescriptorData());
-        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_OBJECT_MATRIX])->GetDescriptorInfo();
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_OBJECT_MATRIX)->GetDescriptorInfo();
 
         descriptorSet = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
     }
 
-    //{
-    //    postdescriptorSet = new DescriptorSet(vulkanDevice);
-    //    Descriptor descriptor;
-
-    //    descriptor.binding = 0;
-    //    VkDescriptorBufferInfo bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
-    //    descriptor.bufferInfo = bufferInfo;
-    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //    postdescriptorSet->AddDescriptor(descriptor);
-    //    
-    //    descriptor.binding = 1;
-    //    descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
-    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //    postdescriptorSet->AddDescriptor(descriptor);
-
-    //    descriptor.binding = 2;
-    //    descriptor.bufferInfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_LIGHTDATA])->GetDescriptorInfo();
-    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    //    descriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //    postdescriptorSet->AddDescriptor(descriptor);
-
-    //    descriptor.binding = 3;
-    //    VkDescriptorImageInfo imageInfo{};
-    //    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //    imageInfo.sampler = vulkanTextureSampler;
-    //    descriptor.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    //    descriptor.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-    //    for (int i = 0; i < COLORATTACHMENT_MAX; ++i)
-    //    {
-    //        descriptor.binding = i + 3;
-    //        imageInfo.imageView = framebufferImages[i + COLORATTACHMENT_MAX]->GetImageView();
-    //        descriptor.imageInfo = imageInfo;
-    //        postdescriptorSet->AddDescriptor(descriptor);
-    //    }
-
-    //    postdescriptorSet->CreateDescriptorSet();
-    //}
     {
         std::vector<DescriptorData> data;
 
         data.push_back(DescriptorData());
-        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_CAMERA_TRANSFORM])->GetDescriptorInfo();
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_CAMERA_TRANSFORM)->GetDescriptorInfo();
         data.push_back(DescriptorData());
-        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_GUI_SETTING])->GetDescriptorInfo();
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_GUI_SETTING)->GetDescriptorInfo();
         data.push_back(DescriptorData());
-        data.back().bufferinfo = VulkanMemoryManager::GetBuffer(uniformBuffers[UNIFORM_LIGHTDATA])->GetDescriptorInfo();
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_LIGHTDATA)->GetDescriptorInfo();
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

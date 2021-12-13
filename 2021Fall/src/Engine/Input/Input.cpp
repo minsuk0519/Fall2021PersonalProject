@@ -47,10 +47,6 @@ void Input::close()
 
 void Input::drawGUI()
 {
-	ImGui::Begin(name.c_str());
-
-
-	ImGui::End();
 }
 
 bool Input::isKeyPressed(int keycode)

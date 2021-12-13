@@ -4,6 +4,7 @@
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 #include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui.h>
 
 //standard library
 #include <iostream>
@@ -941,22 +942,34 @@ void Application::UpdateGui()
     {
         ImGui::Text("FPS : %u", lastFPS);
 
-        for (uint32_t i = 0; i < size; ++i)
-        {
-            bool checkbox = systemGui[i];
-            if(ImGui::Checkbox(engineSystems[i]->name.c_str(), &checkbox))
-            {
-                systemGui[i] = !systemGui[i];
-            } ImGui::SameLine();
-        }
+        //for (uint32_t i = 0; i < size; ++i)
+        //{
+        //    bool checkbox = systemGui[i];
+        //    if(ImGui::Checkbox(engineSystems[i]->name.c_str(), &checkbox))
+        //    {
+        //        systemGui[i] = !systemGui[i];
+        //    } ImGui::SameLine();
+        //}
 
         ImGui::End();
-    }   
-
-    for (uint32_t i = 0; i < size; ++i)
-    {
-        if(systemGui[i]) engineSystems[i]->drawGUI();
     }
+
+    ImGui::BeginTabBar("Systems");
+    for (auto sys : engineSystems)
+    {
+        if (ImGui::BeginTabItem((sys->name + "##systemTab").c_str()))
+        {
+            sys->drawGUI();
+
+            ImGui::EndTabItem();
+        }
+    }
+    ImGui::EndTabBar();
+
+    //for (uint32_t i = 0; i < size; ++i)
+    //{
+    //    if(systemGui[i]) engineSystems[i]->drawGUI();
+    //}
 
 }
 

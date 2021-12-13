@@ -30,15 +30,6 @@ enum FrameBufferIndex
 	FRAMEBUFFER_MAX = DEPTHATTACHMENT + 1,
 };
 
-enum UniformBufferIndex
-{
-	UNIFORM_CAMERA_TRANSFORM = 0,
-	UNIFORM_OBJECT_MATRIX,
-	UNIFORM_GUI_SETTING,
-	UNIFORM_LIGHTDATA,
-	UNIFORM_BUFFER_MAX
-};
-
 class Renderpass;
 class DescriptorSet;
 class Buffer;
@@ -98,11 +89,6 @@ private:
 	VkFormat vulkanSwapChainImageFormat;
 	VkFormat vulkanDepthFormat;
 
-	//should be moved later?
-	Camera* camera = nullptr;
-	//glm::vec3 position[3] = { glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f) };
-	Object* objlist[3] = { nullptr };
-
 private:
 	VkSampleCountFlagBits vulkanMSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -129,10 +115,6 @@ private:
 
 	GUISetting guiSetting;
 	DescriptorManager* descriptorManager = nullptr;
-
-	std::vector<uint32_t> uniformBuffers;
-
-	std::vector<Light*> lightEntities;
 
 private:
 	void SetupSwapChain();

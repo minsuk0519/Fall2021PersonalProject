@@ -140,12 +140,6 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelay
 	{
 		throw std::runtime_error("failed to create graphics pipeline!");
 	}
-
-	//for (auto& shaderstage : shaderStages)
-	//{
-	//	vkDestroyShaderModule(vulkanDevice, shaderstage.module, nullptr);
-	//}
-	//shaderStages.clear();
 }
 
 void GraphicPipeline::close()
@@ -157,34 +151,4 @@ void GraphicPipeline::close()
 VkPipeline GraphicPipeline::GetPipeline() const
 {
 	return vulkanPipeline;
-}
-
-void GraphicPipeline::AddShaderStages(const char* shaderpath, VkShaderStageFlagBits flag)
-{
-	VkShaderModule ShaderModule = CreatevulkanShaderModule(Helper::readFile(shaderpath));
-
-	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	vertShaderStageInfo.stage = flag;
-	vertShaderStageInfo.module = ShaderModule;
-	vertShaderStageInfo.pName = "main";
-
-	shaderStages.push_back(vertShaderStageInfo);
-}
-
-VkShaderModule GraphicPipeline::CreatevulkanShaderModule(const std::vector<char>& code)
-{
-	VkShaderModule shaderModule;
-
-	VkShaderModuleCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	createInfo.codeSize = code.size();
-	createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-	if (vkCreateShaderModule(vulkanDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create shader module!");
-	}
-
-	return shaderModule;
 }

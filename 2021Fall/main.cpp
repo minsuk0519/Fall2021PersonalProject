@@ -26,9 +26,9 @@ int main()
     try {
         app->init();
 
-        app->AddSystem<Graphic>();
-        app->AddSystem<LevelManager>();
         app->AddSystem<Input>();
+        app->AddSystem<LevelManager>();
+        app->AddSystem<Graphic>();
 
         app->postinit();
         

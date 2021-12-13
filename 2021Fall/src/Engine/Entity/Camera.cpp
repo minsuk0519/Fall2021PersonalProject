@@ -1,9 +1,11 @@
 #include "Camera.hpp"
 #include "Engine/Misc/settings.hpp"
+#include "Engine/Memory/Buffer.hpp"
+#include "Engine/Graphic/Graphic.hpp"
 
 glm::vec3 Global_Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-Camera::Camera() : Object(0) {}
+Camera::Camera(unsigned int objid, std::string objname) : Object(objid, objname) {}
 
 void Camera::init()
 {
@@ -14,6 +16,8 @@ void Camera::update(float dt)
 	camTransform.worldToCamera = glm::lookAtLH(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);
 	camTransform.cameraToNDC = glm::perspectiveLH_NO(glm::radians(45.0f), Settings::GetAspectRatio(), 0.1f, 500.0f);
 	camTransform.cameraToNDC[1][1] *= -1;
+
+	VulkanMemoryManager::MapMemory(UNIFORM_CAMERA_TRANSFORM, &camTransform);
 }
 
 void Camera::close()

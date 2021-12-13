@@ -16,6 +16,8 @@ VkCommandPool VulkanMemoryManager::vulkanCommandpool = VK_NULL_HANDLE;
 std::vector<Buffer*> VulkanMemoryManager::buffers;
 uint32_t VulkanMemoryManager::bufferIndex = 0;
 
+std::vector<uint32_t> VulkanMemoryManager::uniformIndices;
+
 void Buffer::close()
 {
     VulkanMemoryManager::FreeBuffer(buffer, memory);
@@ -107,7 +109,7 @@ uint32_t VulkanMemoryManager::CreateIndexBuffer(void* memory, size_t memorysize)
     return bufferIndex++;
 }
 
-uint32_t VulkanMemoryManager::CreateUniformBuffer(size_t memorysize, uint32_t num)
+uint32_t VulkanMemoryManager::CreateUniformBuffer(UniformBufferIndex index, size_t memorysize, uint32_t num)
 {
     VkBuffer buffer;
     VkDeviceMemory buffermemory;
@@ -126,6 +128,8 @@ uint32_t VulkanMemoryManager::CreateUniformBuffer(size_t memorysize, uint32_t nu
     buf->offset = memorysize;
 
     buffers.push_back(buf);
+
+    uniformIndices[index] = bufferIndex;
 
     return bufferIndex++;
 }
@@ -224,12 +228,26 @@ Buffer* VulkanMemoryManager::GetBuffer(uint32_t index)
     return buffers[index];
 }
 
+Buffer* VulkanMemoryManager::GetUniformBuffer(UniformBufferIndex index)
+{
+    if (index >= UniformBufferIndex::UNIFORM_BUFFER_MAX)
+    {
+        throw std::runtime_error("wrong buffer index!");
+    }
+
+    uint32_t innerindex = uniformIndices[index];
+
+    return buffers[innerindex];
+}
+
 void VulkanMemoryManager::Init(VkDevice device)
 {
     vulkanDevice = device;
     vulkanPhysicalDevice = Application::APP()->GetPhysicalDevice();
     vulkanQueue = Application::APP()->GetGraphicQueue();
     vulkanCommandpool = Application::APP()->GetCommandPool();
+
+    uniformIndices.resize(UNIFORM_BUFFER_MAX);
 }
 
 void VulkanMemoryManager::Close()
@@ -593,9 +611,10 @@ void VulkanMemoryManager::MapMemory(VkDeviceMemory devicememory, size_t size, vo
 void VulkanMemoryManager::MapMemory(uint32_t index, void* data, size_t size, uint32_t offset)
 {
     void* temp;
-    VkDeviceSize buffersize = buffers[index]->size;
+    uint32_t innerindex = uniformIndices[index];
+    VkDeviceSize buffersize = buffers[innerindex]->size;
     if (size != 0) buffersize = size;
-    VkDeviceMemory memory = buffers[index]->GetMemory();
+    VkDeviceMemory memory = buffers[innerindex]->GetMemory();
     vkMapMemory(vulkanDevice, memory, offset, buffersize, 0, &temp);
     memcpy(temp, data, buffersize);
     vkUnmapMemory(vulkanDevice, memory);

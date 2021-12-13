@@ -14,6 +14,15 @@ enum BUFFERTYPE
 	BUFFER_MAX,
 };
 
+enum UniformBufferIndex
+{
+	UNIFORM_CAMERA_TRANSFORM = 0,
+	UNIFORM_OBJECT_MATRIX,
+	UNIFORM_GUI_SETTING,
+	UNIFORM_LIGHTDATA,
+	UNIFORM_BUFFER_MAX
+};
+
 class Buffer;
 class Image;
 
@@ -25,7 +34,7 @@ public:
 
 	static uint32_t CreateVertexBuffer(void* memory, size_t memorysize);
 	static uint32_t CreateIndexBuffer(void* memory, size_t memorysize);
-	static uint32_t CreateUniformBuffer(size_t memorysize, uint32_t num = 1);
+	static uint32_t CreateUniformBuffer(UniformBufferIndex index, size_t memorysize, uint32_t num = 1);
 	
 	static void GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format);
 	static Image* CreateFrameBufferImage(VkImageUsageFlags usage, VkFormat format, VkSampleCountFlagBits sample);
@@ -33,6 +42,7 @@ public:
 	static Image* CreateTextureImage(int width, int height, unsigned char* pixels);
 
 	static Buffer* GetBuffer(uint32_t index);
+	static Buffer* GetUniformBuffer(UniformBufferIndex index);
 
 private:
 	static VkDevice vulkanDevice;
@@ -42,6 +52,8 @@ private:
 
 	static std::vector<Buffer*> buffers;
 	static uint32_t bufferIndex;
+
+	static std::vector<uint32_t> uniformIndices;
 
 public:
 	static void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,

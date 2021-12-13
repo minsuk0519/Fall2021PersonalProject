@@ -15,16 +15,12 @@ public:
 	void close();
 
 	VkPipeline GetPipeline() const;
-
-	void AddShaderStages(const char* shaderpath, VkShaderStageFlagBits flag);
 private:
 	VkDevice vulkanDevice;
 
 	VkPipeline vulkanPipeline;
 
 	VkPipelineCache vulkanpipelinecache = VK_NULL_HANDLE;
-
-	VkShaderModule CreatevulkanShaderModule(const std::vector<char>& code);
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
 };

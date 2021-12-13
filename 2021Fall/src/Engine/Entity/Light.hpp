@@ -1,6 +1,8 @@
 #pragma once
 #include "Engine/Entity/Object.hpp"
 
+#define LIGHTDATA_ALLIGNMENT 96
+
 struct LightData
 {
 	glm::vec3 ambient;
@@ -23,7 +25,7 @@ struct LightData
 class Light : public Object
 {
 public:
-	Light();
+	Light(unsigned int objid, std::string objname = "");
 
 	friend class Graphic;
 
@@ -40,7 +42,7 @@ protected:
 class PointLight : public Light
 {
 public:
-	PointLight();
+	PointLight(unsigned int objid, std::string objname = "");
 
 	virtual void init() override;
 	virtual void update(float dt) override;

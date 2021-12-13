@@ -6,6 +6,8 @@ class Camera;
 class Level
 {
 public:
+	friend class LevelManager;
+
 	void init();
 	void update(float dt);
 	void close();

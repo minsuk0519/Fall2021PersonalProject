@@ -1,4 +1,5 @@
 #include "LevelManager.hpp"
+#include "ObjectManager.hpp"
 
 //3rd party library
 #include <imgui/imgui.h>
@@ -33,11 +34,10 @@ void LevelManager::close()
 
 void LevelManager::drawGUI()
 {
-    ImGui::Begin(name.c_str());
-
-
-
-    ImGui::End();
+	if (ImGui::CollapsingHeader("Objects##LevelManager"))
+	{
+		currentLevel->objManager->drawGUI();
+	}
 }
 
 void LevelManager::SetCurrentLevel(Level* level)

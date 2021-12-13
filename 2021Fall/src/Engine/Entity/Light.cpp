@@ -1,8 +1,11 @@
 #include "Light.hpp"
+#include "Engine/Memory/Buffer.hpp"
 
-Light::Light() : Object(0) {}
+#include "Engine/Graphic/Graphic.hpp"
 
-PointLight::PointLight() : Light() {}
+Light::Light(unsigned int objid, std::string objname) : Object(objid, objname) {}
+
+PointLight::PointLight(unsigned int objid, std::string objname) : Light(objid, objname) {}
 
 void PointLight::init()
 {
@@ -23,6 +26,14 @@ void PointLight::init()
 
 void PointLight::update(float dt)
 {
+	uint32_t size = static_cast<uint32_t>(1);
+	for (uint32_t i = 0; i < size; ++i)
+	{
+		//VulkanMemoryManager::MapMemory(UNIFORM_LIGHTDATA, lightEntities[i]->GetLightDataPointer(camera->GetWorldToCamera()), sizeof(LightData), i * LIGHTDATA_ALLIGNMENT);
+		VulkanMemoryManager::MapMemory(UNIFORM_LIGHTDATA, &lightdata, sizeof(LightData), i * LIGHTDATA_ALLIGNMENT);
+	}
+	int data = size;
+	VulkanMemoryManager::MapMemory(UNIFORM_LIGHTDATA, &data, sizeof(int), MAX_LIGHT * LIGHTDATA_ALLIGNMENT);
 }
 
 void PointLight::close()

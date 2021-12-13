@@ -16,7 +16,7 @@ struct ObjectUniform
 class Object
 {
 public:
-	Object(unsigned int objid, std::string objname = "");
+	friend class ObjectManager;
 
 	virtual void init();
 	virtual void update(float dt);
@@ -32,6 +32,8 @@ public:
 	ObjectUniform& GetUniform();
 
 protected:
+	Object(unsigned int objid, std::string objname = "");
+
 	unsigned int id = -1;
 	std::string name = "";
 
