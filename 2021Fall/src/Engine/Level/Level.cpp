@@ -20,20 +20,25 @@ void Level::init()
     newobj->GetTransform().SetScale(glm::vec3(1.0f));
     newobj->GetTransform().SetPosition(glm::vec3(-7.5f, 0.0f, 0.0f));
     newobj->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.955008f, 0.637427f, 0.538163f), 1.0f, 1.0f });
+    newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
 
     newobj = objManager->addObject();
     newobj->GetTransform().SetScale(glm::vec3(1.0f));
     newobj->GetTransform().SetPosition(glm::vec3(7.5f, 0.0f, 0.0f));
     newobj->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(1.0f, 0.765557f, 0.336057f), 1.0f, 1.0f });
+    newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
 
     newobj = objManager->addObject();
     newobj->GetTransform().SetScale(glm::vec3(1.0f));
     newobj->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     newobj->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.659777f, 0.608679f, 0.525649f), 1.0f, 1.0f });
+    //newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
+    newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
 }
 
 void Level::postinit()
 {
+    objManager->postinit();
 }
 
 void Level::update(float dt)

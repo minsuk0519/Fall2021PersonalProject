@@ -78,6 +78,13 @@ enum RENDERPASS_INDEX
 	RENDERPASS_MAX,
 };
 
+struct DrawInfo
+{
+	void* uniformdata;
+	uint32_t uniformsize;
+	uint32_t uniformoffset;
+};
+
 class Graphic : public System
 {
 public:
@@ -90,6 +97,13 @@ public:
 	void close() override;
 	~Graphic() override;
 	void drawGUI() override;
+
+public:
+	void RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid);
+	void AddDrawInfo(DrawInfo drawinfo);
+
+	void BeginCmdBuffer();
+	void EndCmdBuffer();
 
 private:
 	std::vector<VkCommandBuffer> vulkanCommandBuffers;
@@ -130,6 +144,8 @@ private:
 	GUISetting guiSetting;
 	DescriptorManager* descriptorManager = nullptr;
 
+	std::vector<DrawInfo> drawinfos;
+
 private:
 	void SetupSwapChain();
 	void DefineDrawBehavior();
@@ -143,6 +159,4 @@ private:
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
-
-	void ConstructAddCommandBuffer(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid);
 };

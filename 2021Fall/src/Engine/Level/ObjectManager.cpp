@@ -1,4 +1,6 @@
 #include "ObjectManager.hpp"
+#include "Engine/Common/Application.hpp"
+#include "Engine/Graphic/Graphic.hpp"
 
 void ObjectManager::init()
 {
@@ -6,7 +8,16 @@ void ObjectManager::init()
 
 void ObjectManager::postinit()
 {
+	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
 
+	graphic->BeginCmdBuffer();
+
+	for (auto obj : objectList)
+	{
+		obj->postinit();
+	}
+
+	graphic->EndCmdBuffer();
 }
 
 void ObjectManager::update(float dt)

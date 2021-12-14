@@ -1,9 +1,13 @@
 #pragma once
 #include "Engine/Common/Interface.hpp"
 #include "Engine/Common/Transform.hpp"
+#include "Engine/Graphic/Graphic.hpp"
 
 //standard library
 #include <string>
+
+//3rd party library
+#include <vulkan/vulkan.h>
 
 struct ObjectUniform
 {
@@ -36,6 +40,8 @@ public:
 	void* GetUniformPointer();
 	ObjectUniform& GetUniform();
 
+	void SetDrawBehavior(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex);
+
 protected:
 	Object(unsigned int objid, std::string objname = "");
 
@@ -45,4 +51,8 @@ protected:
 	Transform transform;
 
 	ObjectUniform uniform;
+
+private:
+	PROGRAM_ID programID = PROGRAM_ID::PROGRAM_ID_BASERENDER;
+	DRAWTARGET_INDEX drawtargetIndex = DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE;
 };

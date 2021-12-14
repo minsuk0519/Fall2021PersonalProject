@@ -1,5 +1,7 @@
 #include "Object.hpp"
 #include "Engine/Memory/Buffer.hpp"
+#include "Engine/Common/Application.hpp"
+#include "Engine/Graphic/Graphic.hpp"
 
 //3rd party library
 #include <glm/glm.hpp>
@@ -13,7 +15,11 @@ void Object::update(float dt)
 {
 	uniform.objectMat = glm::translate(glm::mat4(1.0f), transform.position) * glm::toMat4(transform.rotation) * glm::scale(glm::mat4(1.0f), transform.scale);
 
-	VulkanMemoryManager::MapMemory(UNIFORM_OBJECT_MATRIX, &uniform, sizeof(ObjectUniform));
+	//VulkanMemoryManager::MapMemory(UNIFORM_OBJECT_MATRIX, &uniform, sizeof(ObjectUniform));
+
+	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
+
+	graphic->AddDrawInfo({ &uniform, sizeof(ObjectUniform), 128 });
 }
 
 void Object::close()
@@ -52,8 +58,17 @@ ObjectUniform& Object::GetUniform()
 	return uniform;
 }
 
+void Object::SetDrawBehavior(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex)
+{
+	programID = programid;
+	drawtargetIndex = drawtargetindex;
+}
+
 Object::Object(unsigned int objid, std::string objname) : id(objid), name(objname), Interface() {}
 
 void Object::postinit()
 {
+	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
+	
+	graphic->RegisterObject(programID, drawtargetIndex);
 }

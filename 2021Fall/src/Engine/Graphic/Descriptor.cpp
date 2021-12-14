@@ -12,11 +12,11 @@ void DescriptorManager::init()
 	shaders[SHADER_ID_BASERENDER_VERTEX] = { CreateShaderModule("data/shaders/baserendervert.spv"), VK_SHADER_STAGE_VERTEX_BIT,
 		{
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0},
-			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1}
 		} };
 	shaders[SHADER_ID_BASERENDER_FRAG] = { CreateShaderModule("data/shaders/baserenderfrag.spv"), VK_SHADER_STAGE_FRAGMENT_BIT,
 		{
-			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1}
 		} };
 	shaders[SHADER_ID_DEFERRED_VERTEX] = { CreateShaderModule("data/shaders/deferredvert.spv"), VK_SHADER_STAGE_VERTEX_BIT, {} };
 	shaders[SHADER_ID_DEFERRED_FRAG] = { CreateShaderModule("data/shaders/deferredfrag.spv"), VK_SHADER_STAGE_FRAGMENT_BIT,

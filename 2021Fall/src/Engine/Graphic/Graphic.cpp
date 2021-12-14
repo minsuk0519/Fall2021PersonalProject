@@ -48,7 +48,8 @@ void Graphic::init()
         uint32_t uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_CAMERA_TRANSFORM, bufferSize);
 
         bufferSize = 128;// sizeof(ObjectUniform);
-        uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_OBJECT_MATRIX, bufferSize);
+        const uint32_t MAX_OBJECT_SIZE = 20;
+        uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_OBJECT_MATRIX, bufferSize, 20);
 
         bufferSize = sizeof(GUISetting);
         uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_GUI_SETTING, bufferSize);
@@ -324,19 +325,44 @@ void Graphic::update(float dt)
         VulkanMemoryManager::MapMemory(UNIFORM_GUI_SETTING, &guiSetting);
     }
 
+    ////pre render
+    //{
+    //    VkSubmitInfo submitInfo{};
+    //    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    //    submitInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
+    //    submitInfo.pCommandBuffers = vulkanCommandBuffers.data();
+
+    //    if (vkQueueSubmit(application->GetGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+    //    {
+    //        throw std::runtime_error("failed to submit draw command buffer!");
+    //    }
+    //    vkQueueWaitIdle(application->GetGraphicQueue());
+    //}
+    
     //pre render
     {
+        uint32_t drawsize = static_cast<uint32_t>(drawinfos.size());
+        for (uint32_t index = 0; index < drawsize; ++index)
+        {
+            VulkanMemoryManager::MapMemory(UNIFORM_OBJECT_MATRIX, drawinfos[index].uniformdata, drawinfos[index].uniformsize, drawinfos[index].uniformoffset * index);
+
+        }
+
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        submitInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
-        submitInfo.pCommandBuffers = vulkanCommandBuffers.data();
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &vulkanCommandBuffers[0];
 
         if (vkQueueSubmit(application->GetGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
+
         vkQueueWaitIdle(application->GetGraphicQueue());
+
+        drawinfos.clear();
     }
 
     VkSubmitInfo submitInfo{};
@@ -613,6 +639,7 @@ void Graphic::DefineDrawBehavior()
         }
 
         descriptorSets[PROGRAM_ID::PROGRAM_ID_DEFERRED] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
+
     }
 
     {
@@ -800,9 +827,20 @@ void Graphic::DefineDrawBehavior()
         }
     }
 
-    ConstructAddCommandBuffer(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
-    ConstructAddCommandBuffer(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
-    ConstructAddCommandBuffer(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
+    //ConstructAddCommandBuffer(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
+
+    vulkanCommandBuffers.resize(1);
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = application->GetCommandPool();
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+
+    if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, &vulkanCommandBuffers[0]) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
 }
 
 VkFormat Graphic::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -853,47 +891,45 @@ VkSampleCountFlagBits Graphic::getMaxUsableSampleCount()
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-void Graphic::ConstructAddCommandBuffer(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid)
+void Graphic::RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid)
 {
-    VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
+    static uint32_t index = 0;
 
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = application->GetCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
+    vkCmdBindPipeline(vulkanCommandBuffers[0], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[programid]->GetPipeline());
 
-    if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, &cmdBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate command buffers!");
-    }
+    descriptorSets[programid]->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(programid), index++);
 
+    DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[drawtargetid]);
+}
+
+void Graphic::AddDrawInfo(DrawInfo drawinfo)
+{
+    drawinfos.push_back(drawinfo);
+}
+
+void Graphic::BeginCmdBuffer()
+{
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0;
     beginInfo.pInheritanceInfo = nullptr;
 
-    if (vkBeginCommandBuffer(cmdBuffer, &beginInfo) != VK_SUCCESS)
+    if (vkBeginCommandBuffer(vulkanCommandBuffers[0], &beginInfo) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to begin recording command buffer!");
     }
 
-    renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->beginRenderpass(cmdBuffer);
+    renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->beginRenderpass(vulkanCommandBuffers[0]);
+}
 
-    vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->GetPipeline());
+void Graphic::EndCmdBuffer()
+{
+    vkCmdEndRenderPass(vulkanCommandBuffers[0]);
 
-    descriptorSets[PROGRAM_ID::PROGRAM_ID_BASERENDER]->BindDescriptorSet(cmdBuffer, descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 0);
-
-    DrawDrawtarget(cmdBuffer, drawtargets[DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE]);
-
-    vkCmdEndRenderPass(cmdBuffer);
-
-    if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS)
+    if (vkEndCommandBuffer(vulkanCommandBuffers[0]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
     }
-
-    vulkanCommandBuffers.push_back(cmdBuffer);
 }
 
 void DrawTarget::AddVertex(VertexInfo info)
