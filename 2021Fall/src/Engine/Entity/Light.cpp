@@ -24,6 +24,10 @@ void PointLight::init()
 	lightdata.type = 0;
 }
 
+void PointLight::postinit()
+{
+}
+
 void PointLight::update(float dt)
 {
 	uint32_t size = static_cast<uint32_t>(1);

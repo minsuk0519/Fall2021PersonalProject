@@ -1,5 +1,5 @@
 #include "Input.hpp"
-#include "Engine/Application.hpp"
+#include "Engine/Common/Application.hpp"
 #include "Engine/Misc/settings.hpp"
 
 std::bitset<GLFW_KEY_LAST + GLFW_MOUSE_BUTTON_LAST> Input::triggeredKey;
@@ -23,6 +23,10 @@ void Input::init()
 	glfwSetKeyCallback(windowptr, keyCallback);
 	glfwSetMouseButtonCallback(windowptr, mouseCallback);
 	glfwSetCursorPosCallback(windowptr, mouseposCallback);
+}
+
+void Input::postinit()
+{
 }
 
 void Input::update(float /*dt*/)

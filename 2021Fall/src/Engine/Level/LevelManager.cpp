@@ -17,6 +17,11 @@ void LevelManager::init()
 	SetCurrentLevel(newlevel);
 }
 
+void LevelManager::postinit()
+{
+	currentLevel->postinit();
+}
+
 void LevelManager::update(float dt)
 {
 	currentLevel->update(dt);

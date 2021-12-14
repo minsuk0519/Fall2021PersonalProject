@@ -30,6 +30,8 @@ public:
 	friend class Graphic;
 
 	virtual void init() override = 0;
+	virtual void postinit() override = 0;
+
 	virtual void update(float dt) override = 0;
 	virtual void close() override = 0;
 
@@ -45,6 +47,7 @@ public:
 	PointLight(unsigned int objid, std::string objname = "");
 
 	virtual void init() override;
+	virtual void postinit() override;
 	virtual void update(float dt) override;
 	virtual void close() override;
 

@@ -4,6 +4,11 @@ void ObjectManager::init()
 {
 }
 
+void ObjectManager::postinit()
+{
+
+}
+
 void ObjectManager::update(float dt)
 {
 	for (auto& obj : objectList)

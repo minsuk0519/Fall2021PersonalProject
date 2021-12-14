@@ -1,16 +1,19 @@
 #pragma once
+#include "Engine/Common/Interface.hpp"
 
 class ObjectManager;
 class Camera;
 
-class Level
+class Level : public Interface
 {
 public:
 	friend class LevelManager;
 
-	void init();
-	void update(float dt);
-	void close();
+	void init() override;
+	void postinit() override;
+
+	void update(float dt) override;
+	void close() override;
 private:
 	ObjectManager* objManager = nullptr;
 

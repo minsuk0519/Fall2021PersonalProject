@@ -8,9 +8,6 @@
     <ClCompile Include="src\Engine\Graphic\GraphicPipeline.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
-    <ClCompile Include="src\Engine\Application.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\Engine\Graphic\VertexInfo.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
@@ -74,6 +71,9 @@
     <ClCompile Include="src\Engine\Graphic\Descriptor.cpp">
       <Filter>Engine\Graphic</Filter>
     </ClCompile>
+    <ClCompile Include="src\Engine\Common\Application.cpp">
+      <Filter>Engine\Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -110,12 +110,6 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\GraphicPipeline.hpp">
       <Filter>Engine\Graphic</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\System.hpp">
-      <Filter>Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Engine\Application.hpp">
-      <Filter>Engine</Filter>
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\VertexInfo.hpp">
       <Filter>Engine\Graphic</Filter>
@@ -167,6 +161,15 @@
     </ClInclude>
     <ClInclude Include="src\Engine\Graphic\Descriptor.hpp">
       <Filter>Engine\Graphic</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Common\Application.hpp">
+      <Filter>Engine\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Common\System.hpp">
+      <Filter>Engine\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Engine\Common\Interface.hpp">
+      <Filter>Engine\Common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -9,7 +9,7 @@
 #include <tinyobjloader/tiny_obj_loader.h>
 #include <glm/vec3.hpp>
 
-#include "Engine/System.hpp"
+#include "Engine/Common/System.hpp"
 #include "GraphicPipeline.hpp"
 #include "Engine/Misc/GUIEnum.hpp"
 #include "Descriptor.hpp"
@@ -84,6 +84,8 @@ public:
 	Graphic(VkDevice device, Application* app);
 
 	void init() override;
+	void postinit() override;
+
 	void update(float dt) override;
 	void close() override;
 	~Graphic() override;
@@ -142,5 +144,5 @@ private:
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
 
-	void ConstructCommandBuffer();
+	void ConstructAddCommandBuffer(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid);
 };

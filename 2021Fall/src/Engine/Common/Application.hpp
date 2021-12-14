@@ -1,4 +1,6 @@
 #pragma once
+#include "Interface.hpp"
+
 //third party library
 #define GLFW_INCLUDE_VULKAN
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -30,15 +32,17 @@ struct SwapChainSupportDetails
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-class Application
+class Application : public Interface
 {
 public:
-	void init();
-	void postinit();
-	void update();
-	void close();
+	void init() override;
+	void postinit() override;
+	void update(float dt = 0) override;
+	void close() override;
 
 	static Application* APP();
+
+	~Application() override;
 
 //template method
 public:
@@ -46,6 +50,21 @@ public:
 	void AddSystem()
 	{
 		engineSystems.push_back(new T(vulkanDevice, this));
+	}
+
+	template <class T> 
+	requires std::derived_from<T, System>
+	T* GetSystem()
+	{
+		for (auto system : engineSystems)
+		{
+			if (T* result = dynamic_cast<T*>(system); result != nullptr)
+			{
+				return result;
+			}
+		}
+
+		return nullptr;
 	}
 
 	GLFWwindow* GetWindowPointer() const;

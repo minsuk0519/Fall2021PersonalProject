@@ -26,7 +26,7 @@
     <ClCompile Include="include\imgui\imgui_tables.cpp" />
     <ClCompile Include="include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="src\Engine\Application.cpp" />
+    <ClCompile Include="src\Engine\Common\Application.cpp" />
     <ClCompile Include="src\Engine\Common\Transform.cpp" />
     <ClCompile Include="src\Engine\Entity\Camera.cpp" />
     <ClCompile Include="src\Engine\Entity\Light.cpp" />
@@ -46,7 +46,9 @@
     <ClCompile Include="src\Engine\Misc\settings.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Engine\Application.hpp" />
+    <ClInclude Include="src\Engine\Common\Application.hpp" />
+    <ClInclude Include="src\Engine\Common\Interface.hpp" />
+    <ClInclude Include="src\Engine\Common\System.hpp" />
     <ClInclude Include="src\Engine\Common\Transform.hpp" />
     <ClInclude Include="src\Engine\Entity\Camera.hpp" />
     <ClInclude Include="src\Engine\Entity\Light.hpp" />
@@ -66,7 +68,6 @@
     <ClInclude Include="src\Engine\Misc\GUIEnum.hpp" />
     <ClInclude Include="src\Engine\Misc\helper.hpp" />
     <ClInclude Include="src\Engine\Misc\settings.hpp" />
-    <ClInclude Include="src\Engine\System.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

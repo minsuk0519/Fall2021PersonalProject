@@ -20,6 +20,10 @@ void Object::close()
 {
 }
 
+Object::~Object()
+{
+}
+
 void Object::GuiSetting()
 {
 	ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
@@ -48,4 +52,8 @@ ObjectUniform& Object::GetUniform()
 	return uniform;
 }
 
-Object::Object(unsigned int objid, std::string objname) : id(objid), name(objname) {}
+Object::Object(unsigned int objid, std::string objname) : id(objid), name(objname), Interface() {}
+
+void Object::postinit()
+{
+}

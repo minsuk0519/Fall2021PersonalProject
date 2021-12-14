@@ -11,6 +11,10 @@ void Camera::init()
 {
 }
 
+void Camera::postinit()
+{
+}
+
 void Camera::update(float dt)
 {
 	camTransform.worldToCamera = glm::lookAtLH(transform.GetPosition(), transform.GetPosition() + transform.GetDirectionVector(), Global_Up);

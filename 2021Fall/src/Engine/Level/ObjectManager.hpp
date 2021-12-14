@@ -7,12 +7,14 @@
 template <class T>
 concept OBJDerived = std::is_base_of<Object, T>::value;
 
-class ObjectManager
+class ObjectManager : public Interface
 {
 public:
-	void init();
-	void update(float dt);
-	void close();
+	virtual void init() override;
+	virtual void postinit() override;
+
+	virtual void update(float dt) override;
+	virtual void close() override;
 
 	Object* addObject(std::string name);
 	Object* addObject();

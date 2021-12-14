@@ -13,9 +13,9 @@
 #include <algorithm>
 
 #include "Application.hpp"
-#include "Misc/settings.hpp"
+#include "Engine/Misc/settings.hpp"
 #include "System.hpp"
-#include "Misc/helper.hpp"
+#include "Engine/Misc/helper.hpp"
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -81,9 +81,14 @@ void Application::postinit()
     {
         sys->init();
     }
+
+    for (auto sys : engineSystems)
+    {
+        sys->postinit();
+    }
 }
 
-void Application::update()
+void Application::update(float /*dt*/)
 {
     while (!glfwWindowShouldClose(window) && !glfwWindowShouldClose(guiWindow) && !shouldshutdown)
     {
@@ -163,6 +168,10 @@ Application* Application::APP()
     }
 
     return applicationPtr;
+}
+
+Application::~Application()
+{
 }
 
 void Application::initVulkan()

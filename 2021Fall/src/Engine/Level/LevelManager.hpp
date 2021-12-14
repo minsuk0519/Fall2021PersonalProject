@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Engine/System.hpp"
+#include "Engine/Common/System.hpp"
 #include "Level.hpp"
 
 //standard library
@@ -14,6 +14,8 @@ public:
 	LevelManager(VkDevice device, Application* app);
 
 	virtual void init() override;
+	virtual void postinit() override;
+
 	virtual void update(float dt) override;
 	virtual void close() override;
 	virtual void drawGUI() override;

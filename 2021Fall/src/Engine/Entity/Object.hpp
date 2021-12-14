@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/Common/Interface.hpp"
 #include "Engine/Common/Transform.hpp"
 
 //standard library
@@ -13,14 +14,18 @@ struct ObjectUniform
 	float roughness = 0.5f;
 };
 
-class Object
+class Object : public Interface
 {
 public:
 	friend class ObjectManager;
 
-	virtual void init();
-	virtual void update(float dt);
-	virtual void close();
+	virtual void init() override;
+	virtual void postinit() override;
+
+	virtual void update(float dt) override;
+	virtual void close() override;
+
+	virtual ~Object() override;
 
 	virtual void GuiSetting();
 
