@@ -36,7 +36,7 @@ void Level::update(float dt)
 {
     float cam_speed = 5.0f;
 
-    if (Input::isPressed(KeyBinding::KEY_SHIFT)) cam_speed = 10.0f;
+    if (Input::isPressed(KeyBinding::KEY_SHIFT)) cam_speed = 30.0f;
     if (Input::isPressed(KeyBinding::KEY_UP)) camera->Move(cam_speed * dt, 0.0f);
     if (Input::isPressed(KeyBinding::KEY_DOWN)) camera->Move(-cam_speed * dt, 0.0f);
     if (Input::isPressed(KeyBinding::KEY_RIGHT)) camera->Move(0.0f, cam_speed * dt);

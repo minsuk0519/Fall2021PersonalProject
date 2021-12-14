@@ -12,6 +12,7 @@
 #include "Engine/System.hpp"
 #include "GraphicPipeline.hpp"
 #include "Engine/Misc/GUIEnum.hpp"
+#include "Descriptor.hpp"
 
 //defined in common.glsl
 #define MAX_LIGHT 8
@@ -63,6 +64,20 @@ struct DrawTarget
 	void AddVertex(VertexInfo info);
 };
 
+enum DRAWTARGET_INDEX
+{
+	DRAWTARGET_RECTANGLE,
+	DRAWTARGET_MODEL_INSTANCE,
+	DRAWTARGET_CUBE,
+};
+
+enum RENDERPASS_INDEX
+{
+	RENDERPASS_POST,
+	RENDERPASS_PRE,
+	RENDERPASS_MAX,
+};
+
 class Graphic : public System
 {
 public:
@@ -96,13 +111,10 @@ private:
 
 	uint32_t textureMipLevels;
 
-	GraphicPipeline* graphicPipeline = nullptr;
-	Renderpass* renderpass = nullptr;
-	DescriptorSet* descriptorSet = nullptr;
+	std::array<GraphicPipeline*, PROGRAM_ID::PROGRAM_ID_MAX> graphicPipelines;
+	std::array<DescriptorSet*, PROGRAM_ID::PROGRAM_ID_MAX> descriptorSets;
 
-	Renderpass* postrenderpass = nullptr;
-	DescriptorSet* postdescriptorSet = nullptr;
-	GraphicPipeline* postgraphicPipeline = nullptr;
+	std::array<Renderpass*, RENDERPASS_INDEX::RENDERPASS_MAX> renderPasses;
 
 	std::vector<VkCommandBuffer> vulkanpostCommandBuffer;
 
@@ -129,4 +141,6 @@ private:
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
+
+	void ConstructCommandBuffer();
 };

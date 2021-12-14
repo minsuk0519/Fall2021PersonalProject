@@ -73,7 +73,6 @@ void Graphic::init()
         uint32_t vertex = VulkanMemoryManager::CreateVertexBuffer(vert.data(), vert.size() * sizeof(PosTexVertex));
         uint32_t index = VulkanMemoryManager::CreateIndexBuffer(indices.data(), indices.size() * sizeof(uint32_t));
 
-
         drawtargets.push_back({ {{vertex, index, 6}} });
     }
 
@@ -291,6 +290,8 @@ void Graphic::init()
 
 void Graphic::update(float dt)
 {
+    ConstructCommandBuffer();
+
     vkWaitForFences(vulkanDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -495,27 +496,27 @@ void Graphic::SetupSwapChain()
 
 void Graphic::CloseSwapChain()
 {
-    descriptorSet->close();
-    delete descriptorSet;
-
-    postdescriptorSet->close();
-    delete postdescriptorSet;
+    for (auto descriptorset : descriptorSets)
+    {
+        descriptorset->close();
+        delete descriptorset;
+    }
 
     vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
     vulkanCommandBuffers.clear();
     vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanpostCommandBuffer.size()), vulkanpostCommandBuffer.data());
 
-    renderpass->close();
-    delete renderpass;
+    for (auto renderpass : renderPasses)
+    {
+        renderpass->close();
+        delete renderpass;
+    }
 
-    postrenderpass->close();
-    delete postrenderpass;
-
-    graphicPipeline->close();
-    delete graphicPipeline;
-
-    postgraphicPipeline->close();
-    delete postgraphicPipeline;
+    for (auto pipeline : graphicPipelines)
+    {
+        pipeline->close();
+        delete pipeline;
+    }
 
     for (auto image : framebufferImages)
     {
@@ -585,7 +586,7 @@ void Graphic::DefineDrawBehavior()
         data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_OBJECT_MATRIX)->GetDescriptorInfo();
 
-        descriptorSet = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
+        descriptorSets[PROGRAM_ID::PROGRAM_ID_BASERENDER] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
     }
 
     {
@@ -609,7 +610,7 @@ void Graphic::DefineDrawBehavior()
             data.back().imageinfo = imageInfo;
         }
 
-        postdescriptorSet = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
+        descriptorSets[PROGRAM_ID::PROGRAM_ID_DEFERRED] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
     }
 
     {
@@ -643,7 +644,7 @@ void Graphic::DefineDrawBehavior()
         depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        renderpass = new Renderpass(vulkanDevice);
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE] = new Renderpass(vulkanDevice);
         Renderpass::Attachment attach;
 
         attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
@@ -653,7 +654,7 @@ void Graphic::DefineDrawBehavior()
             attach.attachmentDescription.format = framebufferImages[i]->GetFormat();
             attach.bindLocation = i;
             attach.imageViews.push_back(framebufferImages[i]->GetImageView());
-            renderpass->addAttachment(attach);
+            renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->addAttachment(attach);
             attach.imageViews.clear();
         }
 
@@ -665,7 +666,7 @@ void Graphic::DefineDrawBehavior()
             attach.attachmentDescription.format = framebufferImages[msaaindex]->GetFormat();
             attach.bindLocation = msaaindex;
             attach.imageViews.push_back(framebufferImages[msaaindex]->GetImageView());
-            renderpass->addAttachment(attach);
+            renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->addAttachment(attach);
             attach.imageViews.clear();
         }
 
@@ -673,11 +674,11 @@ void Graphic::DefineDrawBehavior()
         attach.type = Renderpass::AttachmentType::ATTACHMENT_DEPTH;
         attach.bindLocation = DEPTHATTACHMENT;
         attach.imageViews.push_back(framebufferImages[DEPTHATTACHMENT]->GetImageView());
-        renderpass->addAttachment(attach);
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->addAttachment(attach);
         attach.imageViews.clear();
 
-        renderpass->createRenderPass();
-        renderpass->createFramebuffers();
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->createRenderPass();
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->createFramebuffers();
     }
 
     {
@@ -691,7 +692,7 @@ void Graphic::DefineDrawBehavior()
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-        postrenderpass = new Renderpass(vulkanDevice);
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_POST] = new Renderpass(vulkanDevice);
         Renderpass::Attachment attach;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
         attach.attachmentDescription = colorAttachment;
@@ -700,16 +701,14 @@ void Graphic::DefineDrawBehavior()
         {
             attach.imageViews.push_back(swapimage->GetImageView());
         }
-        postrenderpass->addAttachment(attach);
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->addAttachment(attach);
 
-        postrenderpass->createRenderPass();
-        postrenderpass->createFramebuffers(static_cast<uint32_t>(swapchainImageSize));
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->createRenderPass();
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->createFramebuffers(static_cast<uint32_t>(swapchainImageSize));
     }
 
     //create graphic pipeline
     {
-        graphicPipeline = new GraphicPipeline(vulkanDevice);
-
         std::array<VkVertexInputBindingDescription, 2> bindingDescriptions;
         bindingDescriptions[0] = PosNormal::getBindingDescription();
         bindingDescriptions[1].binding = 1;
@@ -734,12 +733,11 @@ void Graphic::DefineDrawBehavior()
 
         VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER);
 
-        graphicPipeline->init(renderpass->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER));
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER] = new GraphicPipeline(vulkanDevice);
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER));
     }
 
     {
-        postgraphicPipeline = new GraphicPipeline(vulkanDevice);
-
         VkVertexInputBindingDescription bindingDescription = PosTexVertex::getBindingDescription();
         auto attributeDescriptions = PosTexVertex::getAttributeDescriptions();
 
@@ -752,91 +750,11 @@ void Graphic::DefineDrawBehavior()
 
         VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED);
 
-        postgraphicPipeline->init(postrenderpass->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DEFERRED));
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED] = new GraphicPipeline(vulkanDevice);
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DEFERRED));
     }
 
-    //create command buffer
-    {
-        vulkanCommandBuffers.resize(2);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = application->GetCommandPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
-
-        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-
-        {
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0;
-            beginInfo.pInheritanceInfo = nullptr;
-
-            if (vkBeginCommandBuffer(vulkanCommandBuffers[0], &beginInfo) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to begin recording command buffer!");
-            }
-
-            renderpass->beginRenderpass(vulkanCommandBuffers[0]);
-
-            vkCmdBindPipeline(vulkanCommandBuffers[0], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                graphicPipeline->GetPipeline());
-
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 0);
-            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
-
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 1);
-            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
-
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 2);
-            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[1]);
-
-            vkCmdEndRenderPass(vulkanCommandBuffers[0]);
-
-            if (vkEndCommandBuffer(vulkanCommandBuffers[0]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to recored command buffer!");
-            }
-        }
-
-        {
-            VkCommandBufferBeginInfo beginInfo{};
-            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0;
-            beginInfo.pInheritanceInfo = nullptr;
-
-            if (vkBeginCommandBuffer(vulkanCommandBuffers[1], &beginInfo) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to begin recording command buffer!");
-            }
-
-            renderpass->beginRenderpass(vulkanCommandBuffers[1]);
-
-            vkCmdBindPipeline(vulkanCommandBuffers[1], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                graphicPipeline->GetPipeline());
-
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 0);
-            DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
-
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 1);
-            DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
-
-            descriptorSet->BindDescriptorSet(vulkanCommandBuffers[1], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 2);
-            DrawDrawtarget(vulkanCommandBuffers[1], drawtargets[2]);
-
-            vkCmdEndRenderPass(vulkanCommandBuffers[1]);
-
-            if (vkEndCommandBuffer(vulkanCommandBuffers[1]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to recored command buffer!");
-            }
-        }
-    }
-
+    //create commandbuffer for post rendering
     {
         vulkanpostCommandBuffer.resize(swapchainImageSize);
 
@@ -863,14 +781,13 @@ void Graphic::DefineDrawBehavior()
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
 
-            postrenderpass->beginRenderpass(vulkanpostCommandBuffer[i], static_cast<uint32_t>(i));
+            renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->beginRenderpass(vulkanpostCommandBuffer[i], static_cast<uint32_t>(i));
 
-            vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                postgraphicPipeline->GetPipeline());
+            vkCmdBindPipeline(vulkanpostCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED]->GetPipeline());
 
-            postdescriptorSet->BindDescriptorSet(vulkanpostCommandBuffer[i], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED), 0);
+            descriptorSets[PROGRAM_ID::PROGRAM_ID_DEFERRED]->BindDescriptorSet(vulkanpostCommandBuffer[i], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED), 0);
 
-            DrawDrawtarget(vulkanpostCommandBuffer[i], drawtargets[0]);
+            DrawDrawtarget(vulkanpostCommandBuffer[i], drawtargets[DRAWTARGET_INDEX::DRAWTARGET_RECTANGLE]);
 
             vkCmdEndRenderPass(vulkanpostCommandBuffer[i]);
 
@@ -880,6 +797,8 @@ void Graphic::DefineDrawBehavior()
             }
         }
     }
+
+    ConstructCommandBuffer();
 }
 
 VkFormat Graphic::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -928,6 +847,53 @@ VkSampleCountFlagBits Graphic::getMaxUsableSampleCount()
     if (counts & VK_SAMPLE_COUNT_2_BIT) return VK_SAMPLE_COUNT_2_BIT;
 
     return VK_SAMPLE_COUNT_1_BIT;
+}
+
+void Graphic::ConstructCommandBuffer()
+{
+    //create command buffer
+    {
+        //-1 is for postprocess program
+        vulkanCommandBuffers.resize(PROGRAM_ID::PROGRAM_ID_MAX - 1);
+
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = application->GetCommandPool();
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
+
+        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+
+        {
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = 0;
+            beginInfo.pInheritanceInfo = nullptr;
+
+            if (vkBeginCommandBuffer(vulkanCommandBuffers[0], &beginInfo) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to begin recording command buffer!");
+            }
+
+            renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->beginRenderpass(vulkanCommandBuffers[0]);
+
+            vkCmdBindPipeline(vulkanCommandBuffers[0], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->GetPipeline());
+
+            descriptorSets[PROGRAM_ID::PROGRAM_ID_BASERENDER]->BindDescriptorSet(vulkanCommandBuffers[0], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER), 0);
+
+            DrawDrawtarget(vulkanCommandBuffers[0], drawtargets[DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE]);
+
+            vkCmdEndRenderPass(vulkanCommandBuffers[0]);
+
+            if (vkEndCommandBuffer(vulkanCommandBuffers[0]) != VK_SUCCESS)
+            {
+                throw std::runtime_error("failed to recored command buffer!");
+            }
+        }
+    }
 }
 
 void DrawTarget::AddVertex(VertexInfo info)
