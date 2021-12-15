@@ -9,6 +9,8 @@
 //3rd party library
 #include <vulkan/vulkan.h>
 
+class Level;
+
 struct ObjectUniform
 {
 	glm::mat4 objectMat = glm::mat4(1.0f);
@@ -43,7 +45,7 @@ public:
 	void SetDrawBehavior(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex);
 
 protected:
-	Object(unsigned int objid, std::string objname = "");
+	Object(Level* level, unsigned int objid, std::string objname = "");
 
 	unsigned int id = -1;
 	std::string name = "";
@@ -51,6 +53,8 @@ protected:
 	Transform transform;
 
 	ObjectUniform uniform;
+
+	Level* ownerLevel = nullptr;
 
 private:
 	PROGRAM_ID programID = PROGRAM_ID::PROGRAM_ID_BASERENDER;

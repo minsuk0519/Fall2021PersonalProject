@@ -623,6 +623,17 @@ void Graphic::DefineDrawBehavior()
         data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_CAMERA_TRANSFORM)->GetDescriptorInfo();
         data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_OBJECT_MATRIX)->GetDescriptorInfo();
+
+        descriptorSets[PROGRAM_ID::PROGRAM_ID_DIFFUSE] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DIFFUSE, data);
+    }
+
+    {
+        std::vector<DescriptorData> data;
+
+        data.push_back(DescriptorData());
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_CAMERA_TRANSFORM)->GetDescriptorInfo();
+        data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_GUI_SETTING)->GetDescriptorInfo();
         data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_LIGHTDATA)->GetDescriptorInfo();
@@ -639,7 +650,6 @@ void Graphic::DefineDrawBehavior()
         }
 
         descriptorSets[PROGRAM_ID::PROGRAM_ID_DEFERRED] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
-
     }
 
     {
@@ -764,6 +774,36 @@ void Graphic::DefineDrawBehavior()
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER] = new GraphicPipeline(vulkanDevice);
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER));
+    }
+
+    //create graphic pipeline
+    {
+        std::array<VkVertexInputBindingDescription, 2> bindingDescriptions;
+        bindingDescriptions[0] = PosNormal::getBindingDescription();
+        bindingDescriptions[1].binding = 1;
+        bindingDescriptions[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+        bindingDescriptions[1].stride = sizeof(glm::vec3);
+
+        auto vertdesc = PosNormal::getAttributeDescriptions();
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions;
+        attributeDescriptions[0] = vertdesc[0];
+        attributeDescriptions[1] = vertdesc[1];
+        attributeDescriptions[2].binding = 1;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = 0;
+
+        VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+        vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
+        vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+
+        VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DIFFUSE);
+
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE] = new GraphicPipeline(vulkanDevice);
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DIFFUSE));
     }
 
     {

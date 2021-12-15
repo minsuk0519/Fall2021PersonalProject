@@ -10,6 +10,8 @@ concept OBJDerived = std::is_base_of<Object, T>::value;
 class ObjectManager : public Interface
 {
 public:
+	ObjectManager(Level* level);
+
 	virtual void init() override;
 	virtual void postinit() override;
 
@@ -25,7 +27,7 @@ public:
 	{
 		std::string name = "Object" + std::to_string(currentIndex);
 
-		Object* obj = new T(currentIndex++, name);
+		Object* obj = new T(ownerLevel, currentIndex++, name);
 
 		obj->init();
 		objectList.push_back(obj);
@@ -49,7 +51,23 @@ public:
 	Object* getObjectByID(uint32_t id) const;
 	Object* getObjectByName(std::string name) const;
 
+	template<OBJDerived<> T>
+	T* getObjectByTemplate() const
+	{
+		for (auto obj : objectList)
+		{
+			if (T* cast = dynamic_cast<T*>(obj); cast != nullptr)
+			{
+				return cast;
+			}
+		}
+
+		return nullptr;
+	}
+
 private:
 	std::vector<Object*> objectList;
 	unsigned int currentIndex;
+
+	Level* ownerLevel = nullptr;
 };

@@ -2,6 +2,10 @@
 #include "Engine/Common/Application.hpp"
 #include "Engine/Graphic/Graphic.hpp"
 
+ObjectManager::ObjectManager(Level* level) : ownerLevel(level)
+{
+}
+
 void ObjectManager::init()
 {
 }
@@ -41,7 +45,7 @@ void ObjectManager::close()
 
 Object* ObjectManager::addObject(std::string name)
 {
-	Object* obj = new Object(currentIndex++, name);
+	Object* obj = new Object(ownerLevel, currentIndex++, name);
 
 	obj->init();
 
@@ -53,7 +57,7 @@ Object* ObjectManager::addObject(std::string name)
 Object* ObjectManager::addObject()
 {
 	std::string name = "Object" + std::to_string(currentIndex);
-	Object* obj = new Object(currentIndex++, name);
+	Object* obj = new Object(ownerLevel, currentIndex++, name);
 
 	obj->init();
 

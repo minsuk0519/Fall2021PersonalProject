@@ -28,11 +28,19 @@ void DescriptorManager::init()
 			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
 			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5}
 		} };
+	shaders[SHADER_ID_DIFFUSE_VERTEX] = { CreateShaderModule("data/shaders/cuberendervert.spv"), VK_SHADER_STAGE_VERTEX_BIT, 
+		{
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0},
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1}
+		} };
+	shaders[SHADER_ID_DIFFUSE_FRAG] = { CreateShaderModule("data/shaders/cuberenderfrag.spv"), VK_SHADER_STAGE_FRAGMENT_BIT,
+		{
+			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1}
+		} };
 
-	programs.clear();
-
-	programs.push_back({ SHADER_ID_BASERENDER_VERTEX, SHADER_ID_BASERENDER_FRAG });	//PROGRAM_ID_BASERENDER
-	programs.push_back({ SHADER_ID_DEFERRED_VERTEX, SHADER_ID_DEFERRED_FRAG });		//PROGRAM_ID_DEFERRED
+	programs[PROGRAM_ID::PROGRAM_ID_BASERENDER] = { SHADER_ID_BASERENDER_VERTEX, SHADER_ID_BASERENDER_FRAG };
+	programs[PROGRAM_ID::PROGRAM_ID_DEFERRED] = { SHADER_ID_DEFERRED_VERTEX, SHADER_ID_DEFERRED_FRAG };
+	programs[PROGRAM_ID::PROGRAM_ID_DIFFUSE] = { SHADER_ID_DIFFUSE_VERTEX, SHADER_ID_DIFFUSE_FRAG };
 
 	SetupShaderPrograms(programs);
 }
@@ -59,7 +67,7 @@ void DescriptorManager::close()
 	}
 }
 
-void DescriptorManager::SetupShaderPrograms(const std::vector<std::vector<SHADER_ID>>& programs)
+void DescriptorManager::SetupShaderPrograms(const std::array<std::vector<SHADER_ID>, PROGRAM_ID::PROGRAM_ID_MAX>& programs)
 {
 	std::vector<VkDescriptorPoolSize> poolSizes{};
 

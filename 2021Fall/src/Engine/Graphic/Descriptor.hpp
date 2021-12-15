@@ -14,6 +14,8 @@ enum SHADER_ID
 	SHADER_ID_BASERENDER_FRAG,
 	SHADER_ID_DEFERRED_VERTEX,
 	SHADER_ID_DEFERRED_FRAG,
+	SHADER_ID_DIFFUSE_VERTEX,
+	SHADER_ID_DIFFUSE_FRAG,
 	SHADER_ID_MAX,
 };
 
@@ -21,6 +23,7 @@ enum PROGRAM_ID
 {
 	PROGRAM_ID_BASERENDER = 0,
 	PROGRAM_ID_DEFERRED = 1,
+	PROGRAM_ID_DIFFUSE = 2,
 	PROGRAM_ID_MAX,
 };
 
@@ -79,11 +82,11 @@ private:
 
 	std::array<std::vector<VkPipelineShaderStageCreateInfo>, PROGRAM_ID_MAX> programShaderStageCreateInfo;
 
-	std::vector<std::vector<SHADER_ID>> programs;
+	std::array<std::vector<SHADER_ID>, PROGRAM_ID::PROGRAM_ID_MAX> programs;
 
 	VkDevice vulkanDevice;
 	
-	void SetupShaderPrograms(const std::vector<std::vector<SHADER_ID>>& programs);
+	void SetupShaderPrograms(const std::array<std::vector<SHADER_ID>, PROGRAM_ID::PROGRAM_ID_MAX>& programs);
 
 	VkShaderModule CreateShaderModule(const char* filename);
 };

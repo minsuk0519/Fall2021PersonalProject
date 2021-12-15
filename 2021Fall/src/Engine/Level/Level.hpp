@@ -14,6 +14,9 @@ public:
 
 	void update(float dt) override;
 	void close() override;
+
+	ObjectManager* GetObjectManager() const;
+
 private:
 	ObjectManager* objManager = nullptr;
 

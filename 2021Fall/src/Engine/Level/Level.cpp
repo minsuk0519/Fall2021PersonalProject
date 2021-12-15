@@ -6,15 +6,31 @@
 
 void Level::init()
 {
-	objManager = new ObjectManager();
+	objManager = new ObjectManager(this);
 
     camera = objManager->addObjectByTemplate<Camera>();
     camera->GetTransform().SetPosition(glm::vec3(0.0f, 3.0f, -5.0f));
 
-    objManager->addObjectByTemplate<PointLight>();
-    objManager->addObjectByTemplate<PointLight>();
-    objManager->addObjectByTemplate<PointLight>();
-    objManager->addObjectByTemplate<PointLight>();
+    PointLight* newlight = objManager->addObjectByTemplate<PointLight>();
+    newlight->setLightIndex(0);
+    newlight->GetTransform().SetPosition(glm::vec3(5.0f, 15.0f, 0.0f));
+    newlight->GetTransform().SetScale(glm::vec3(0.2f));
+    newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
+    newlight = objManager->addObjectByTemplate<PointLight>();
+    newlight->setLightIndex(1);
+    newlight->GetTransform().SetPosition(glm::vec3(0.0f, 5.0f, 5.0f));
+    newlight->GetTransform().SetScale(glm::vec3(0.2f));
+    newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
+    newlight = objManager->addObjectByTemplate<PointLight>();
+    newlight->setLightIndex(2);
+    newlight->GetTransform().SetPosition(glm::vec3(-5.0f, -15.0f, 0.0f));
+    newlight->GetTransform().SetScale(glm::vec3(0.2f));
+    newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
+    newlight = objManager->addObjectByTemplate<PointLight>();
+    newlight->setLightIndex(3, true);
+    newlight->GetTransform().SetPosition(glm::vec3(0.0f, -5.0f, -5.0f));
+    newlight->GetTransform().SetScale(glm::vec3(0.2f));
+    newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
 
     Object* newobj = objManager->addObject();
     newobj->GetTransform().SetScale(glm::vec3(1.0f));
@@ -59,4 +75,9 @@ void Level::close()
 {
 	objManager->close();
 	delete objManager;
+}
+
+ObjectManager* Level::GetObjectManager() const
+{
+    return objManager;
 }

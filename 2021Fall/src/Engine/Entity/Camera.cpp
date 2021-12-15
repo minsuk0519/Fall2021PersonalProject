@@ -5,7 +5,7 @@
 
 glm::vec3 Global_Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-Camera::Camera(unsigned int objid, std::string objname) : Object(objid, objname) {}
+Camera::Camera(Level* level, unsigned int objid, std::string objname) : Object(level, objid, objname) {}
 
 void Camera::init()
 {

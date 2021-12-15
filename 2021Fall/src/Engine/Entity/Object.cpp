@@ -64,7 +64,7 @@ void Object::SetDrawBehavior(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetin
 	drawtargetIndex = drawtargetindex;
 }
 
-Object::Object(unsigned int objid, std::string objname) : id(objid), name(objname), Interface() {}
+Object::Object(Level* level, unsigned int objid, std::string objname) : ownerLevel(level), id(objid), name(objname), Interface() {}
 
 void Object::postinit()
 {

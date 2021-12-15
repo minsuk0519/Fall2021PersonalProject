@@ -25,7 +25,7 @@ struct LightData
 class Light : public Object
 {
 public:
-	Light(unsigned int objid, std::string objname = "");
+	Light(Level* level, unsigned int objid, std::string objname = "");
 
 	friend class Graphic;
 
@@ -36,15 +36,20 @@ public:
 	virtual void close() override = 0;
 
 	virtual void* GetLightDataPointer(glm::mat4 viewMat) = 0;
-protected:
 
+	void setLightIndex(uint32_t index, bool end = false);
+
+protected:
+	uint32_t lightIndex;
 	LightData lightdata;
+
+	bool endIndex = false;
 };
 
 class PointLight : public Light
 {
 public:
-	PointLight(unsigned int objid, std::string objname = "");
+	PointLight(Level* level, unsigned int objid, std::string objname = "");
 
 	virtual void init() override;
 	virtual void postinit() override;
