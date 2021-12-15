@@ -68,6 +68,21 @@ Object* ObjectManager::addObject()
 
 void ObjectManager::drawGUI()
 {
+	ImGui::BeginListBox("Objects");
+
+	static uint32_t selectedid = 0;
+
+	for (auto obj : objectList)
+	{
+		if (ImGui::Selectable((obj->name + "##" + std::to_string(obj->id)).c_str(), selectedid == obj->id))
+		{
+			selectedid = obj->id;
+		}
+	}
+
+	ImGui::EndListBox();
+
+	getObjectByID(selectedid)->drawGUI();
 }
 
 Object* ObjectManager::getObjectByID(uint32_t id) const

@@ -33,7 +33,7 @@ public:
 
 	virtual ~Object() override;
 
-	virtual void GuiSetting();
+	virtual void drawGUI();
 
 public:
 	Transform& GetTransform();

@@ -30,7 +30,7 @@ Object::~Object()
 {
 }
 
-void Object::GuiSetting()
+void Object::drawGUI()
 {
 	ImGui::DragFloat3("Position", &transform.position.x, 0.1f);
 	ImGui::ColorEdit3("Color", &uniform.color.x);
