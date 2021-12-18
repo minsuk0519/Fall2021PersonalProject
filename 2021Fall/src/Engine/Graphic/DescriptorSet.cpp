@@ -15,13 +15,18 @@ void DescriptorSet::close()
 {
 }
 
-void DescriptorSet::BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t offset)
+void DescriptorSet::BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, std::vector<uint32_t> offset)
 {
     std::vector<uint32_t> memoffset;
 
-    for (auto off : dynamic_offset)
+    if (offset.size() != dynamic_offset.size())
     {
-        memoffset.push_back(off * offset);
+        throw std::runtime_error("offset index is not correct!");
+    }
+
+    for (uint32_t i = 0; i < offset.size(); ++i)
+    {
+        memoffset.push_back(offset[i] * dynamic_offset[i]);
     }
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,

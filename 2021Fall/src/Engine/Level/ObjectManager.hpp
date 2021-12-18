@@ -4,6 +4,8 @@
 
 #include "Engine/Entity/Object.hpp"
 
+class Light;
+
 template <class T>
 concept OBJDerived = std::is_base_of<Object, T>::value;
 
@@ -32,6 +34,11 @@ public:
 		obj->init();
 		objectList.push_back(obj);
 
+		if (Light* lit = dynamic_cast<Light*>(obj); lit != nullptr)
+		{
+			lightList.push_back(lit);
+		}
+
 		return dynamic_cast<T*>(obj);
 	}
 
@@ -42,6 +49,11 @@ public:
 
 		obj->init();
 		objectList.push_back(obj);
+
+		if (Light* lit = dynamic_cast<Light*>(obj); lit != nullptr)
+		{
+			lightList.push_back(lit);
+		}
 
 		return dynamic_cast<T*>(obj);
 	}
@@ -67,6 +79,8 @@ public:
 
 private:
 	std::vector<Object*> objectList;
+	std::vector<Light*> lightList;
+
 	unsigned int currentIndex;
 
 	Level* ownerLevel = nullptr;

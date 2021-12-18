@@ -31,6 +31,28 @@ enum FrameBufferIndex
 	FRAMEBUFFER_MAX = DEPTHATTACHMENT + 1,
 };
 
+enum DRAWTARGET_INDEX
+{
+	DRAWTARGET_RECTANGLE,
+	DRAWTARGET_MODEL_INSTANCE,
+	DRAWTARGET_CUBE,
+};
+
+enum RENDERPASS_INDEX
+{
+	RENDERPASS_POST = 0,
+	RENDERPASS_PRE = 1,
+	RENDERPASS_DEPTHCUBEMAP = 2,
+	RENDERPASS_MAX = RENDERPASS_DEPTHCUBEMAP + 1,
+};
+
+enum CMD_INDEX
+{
+	CMD_BASE = 0,
+	CMD_SHADOW = 1,
+	CMD_POST = 2,
+};
+
 class Renderpass;
 class DescriptorSet;
 class Buffer;
@@ -64,20 +86,6 @@ struct DrawTarget
 	void AddVertex(VertexInfo info);
 };
 
-enum DRAWTARGET_INDEX
-{
-	DRAWTARGET_RECTANGLE,
-	DRAWTARGET_MODEL_INSTANCE,
-	DRAWTARGET_CUBE,
-};
-
-enum RENDERPASS_INDEX
-{
-	RENDERPASS_POST,
-	RENDERPASS_PRE,
-	RENDERPASS_MAX,
-};
-
 struct DrawInfo
 {
 	void* uniformdata;
@@ -100,10 +108,12 @@ public:
 
 public:
 	void RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid);
+	void RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid, std::vector<uint32_t> indices);
+
 	void AddDrawInfo(DrawInfo drawinfo);
 
-	void BeginCmdBuffer();
-	void EndCmdBuffer();
+	void BeginCmdBuffer(CMD_INDEX cmdindex, RENDERPASS_INDEX renderpassindex);
+	void EndCmdBuffer(CMD_INDEX cmdindex);
 
 private:
 	std::vector<VkCommandBuffer> vulkanCommandBuffers;
@@ -132,8 +142,6 @@ private:
 
 	std::array<Renderpass*, RENDERPASS_INDEX::RENDERPASS_MAX> renderPasses;
 
-	std::vector<VkCommandBuffer> vulkanpostCommandBuffer;
-
 	std::vector<DrawTarget> drawtargets;
 
 	std::vector<Image*> swapchainImages;
@@ -146,9 +154,15 @@ private:
 
 	std::vector<DrawInfo> drawinfos;
 
+	CMD_INDEX currentCommandIndex;
+
 private:
 	void SetupSwapChain();
 	void DefineDrawBehavior();
+
+	void DefineShadowMap();
+	void DefinePostProcess();
+
 	void CloseSwapChain();
 	void RecreateSwapChain();
 

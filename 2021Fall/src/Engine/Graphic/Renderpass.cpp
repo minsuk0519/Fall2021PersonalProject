@@ -48,7 +48,7 @@ void Renderpass::createRenderPass()
 
     if (colorattachmentRefs.size() != resolvedattachmentRefs.size())
     {
-        std::runtime_error("Error : renderpass color attachment size != resolved attachment size");
+        throw std::runtime_error("Error : renderpass color attachment size != resolved attachment size");
     }
 
     VkSubpassDependency dependency{};
@@ -84,8 +84,10 @@ void Renderpass::createRenderPass()
     }
 }
 
-void Renderpass::createFramebuffers(uint32_t number)
+void Renderpass::createFramebuffers(uint32_t width, uint32_t height, uint32_t layer, uint32_t number)
 {
+    extent = { width, height };
+
     framebufferObjects.resize(number);
 
     for (uint32_t j = 0; j < number; ++j)
@@ -108,9 +110,9 @@ void Renderpass::createFramebuffers(uint32_t number)
         framebufferInfo.renderPass = renderPassObject;
         framebufferInfo.attachmentCount = attachmentsize;
         framebufferInfo.pAttachments = imageAttachments.data();
-        framebufferInfo.width = Settings::windowWidth;
-        framebufferInfo.height = Settings::windowHeight;
-        framebufferInfo.layers = 1;
+        framebufferInfo.width = width;
+        framebufferInfo.height = height;
+        framebufferInfo.layers = layer;
 
         if (vkCreateFramebuffer(vulkanDevice, &framebufferInfo, nullptr, &framebufferObjects[j]) != VK_SUCCESS)
         {
@@ -147,7 +149,7 @@ void Renderpass::beginRenderpass(VkCommandBuffer commandbuffer, uint32_t index)
     renderPassInfo.framebuffer = framebufferObjects[index];
 
     renderPassInfo.renderArea.offset = { 0,0 };
-    renderPassInfo.renderArea.extent = { Settings::windowWidth, Settings::windowHeight };
+    renderPassInfo.renderArea.extent = extent;
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();

@@ -2,6 +2,7 @@
 #include "Engine/Entity/Object.hpp"
 
 #define LIGHTDATA_ALLIGNMENT 96
+#define LIGHTPROJ_ALLIGNMENT 448
 
 struct LightData
 {
@@ -20,6 +21,14 @@ struct LightData
 	float falloff;
 
 	int type;
+};
+
+struct LightProj
+{
+	glm::mat4 projection[6];
+
+	glm::vec3 position;
+	float far_plane;
 };
 
 class Light : public Object
@@ -43,7 +52,12 @@ protected:
 	uint32_t lightIndex;
 	LightData lightdata;
 
+	LightProj lightproj;
+
 	bool endIndex = false;
+
+	uint32_t shadowmaptexID;
+	Renderpass* renderpass;
 };
 
 class PointLight : public Light

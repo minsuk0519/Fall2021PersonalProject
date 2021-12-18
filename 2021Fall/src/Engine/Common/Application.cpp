@@ -235,7 +235,11 @@ void Application::initVulkan()
 
         VkPhysicalDeviceFeatures deviceFeatures{};
         //enable sample shading
+        if (vulkanDeviceFeatures.sampleRateShading != VK_TRUE) throw std::runtime_error("not support sample shading");
         deviceFeatures.sampleRateShading = VK_TRUE;
+        //enable geometry shader
+        if (vulkanDeviceFeatures.geometryShader != VK_TRUE) throw std::runtime_error("not support geometry shader");
+        deviceFeatures.geometryShader = VK_TRUE;
 
         VkDeviceCreateInfo deviceCreateInfo{};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

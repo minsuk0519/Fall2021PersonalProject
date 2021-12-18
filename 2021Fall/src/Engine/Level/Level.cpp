@@ -13,7 +13,7 @@ void Level::init()
 
     PointLight* newlight = objManager->addObjectByTemplate<PointLight>();
     newlight->setLightIndex(0);
-    newlight->GetTransform().SetPosition(glm::vec3(5.0f, 15.0f, 0.0f));
+    newlight->GetTransform().SetPosition(glm::vec3(0.0f, 5.0f, 0.0f));
     newlight->GetTransform().SetScale(glm::vec3(0.2f));
     newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
     newlight = objManager->addObjectByTemplate<PointLight>();
@@ -23,12 +23,12 @@ void Level::init()
     newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
     newlight = objManager->addObjectByTemplate<PointLight>();
     newlight->setLightIndex(2);
-    newlight->GetTransform().SetPosition(glm::vec3(-5.0f, -15.0f, 0.0f));
+    newlight->GetTransform().SetPosition(glm::vec3(-5.0f, 5.0f, 0.0f));
     newlight->GetTransform().SetScale(glm::vec3(0.2f));
     newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
     newlight = objManager->addObjectByTemplate<PointLight>();
     newlight->setLightIndex(3, true);
-    newlight->GetTransform().SetPosition(glm::vec3(0.0f, -5.0f, -5.0f));
+    newlight->GetTransform().SetPosition(glm::vec3(0.0f, 5.0f, -5.0f));
     newlight->GetTransform().SetScale(glm::vec3(0.2f));
     newlight->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_DIFFUSE, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
 
@@ -45,10 +45,15 @@ void Level::init()
     newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
 
     newobj = objManager->addObject();
-    newobj->GetTransform().SetScale(glm::vec3(1.0f));
-    newobj->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+    newobj->GetTransform().SetScale(glm::vec3(30.0f, 0.1f, 30.0f));
+    newobj->GetTransform().SetPosition(glm::vec3(0.0f, -2.0f, 15.0f));
     newobj->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.659777f, 0.608679f, 0.525649f), 1.0f, 1.0f });
-    //newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE);
+    newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
+
+    newobj = objManager->addObject();
+    newobj->GetTransform().SetScale(glm::vec3(30.0f, 0.1f, 30.0f));
+    newobj->GetTransform().SetPosition(glm::vec3(0.0f, 10.0f, 15.0f));
+    newobj->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.659777f, 0.608679f, 0.525649f), 1.0f, 1.0f });
     newobj->SetDrawBehavior(PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_CUBE);
 }
 

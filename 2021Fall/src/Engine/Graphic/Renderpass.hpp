@@ -13,7 +13,7 @@ public:
 
 	void init();
 	void createRenderPass();
-	void createFramebuffers(uint32_t number = 1);
+	void createFramebuffers(uint32_t width, uint32_t height, uint32_t layer, uint32_t number = 1);
 	void close();
 
 public:
@@ -48,4 +48,6 @@ private:
 	uint32_t outputSize;
 
 	VkDevice vulkanDevice;
+
+	VkExtent2D extent;
 };

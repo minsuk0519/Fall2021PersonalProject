@@ -14,14 +14,24 @@ void ObjectManager::postinit()
 {
 	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
 
-	graphic->BeginCmdBuffer();
+	graphic->BeginCmdBuffer(CMD_INDEX::CMD_BASE, RENDERPASS_INDEX::RENDERPASS_PRE);
 
 	for (auto obj : objectList)
 	{
 		obj->postinit();
 	}
 
-	graphic->EndCmdBuffer();
+	graphic->EndCmdBuffer(CMD_INDEX::CMD_BASE);
+
+	graphic->BeginCmdBuffer(CMD_INDEX::CMD_SHADOW, RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP);
+
+	uint32_t index = 0;
+	for (auto obj : objectList)
+	{
+		graphic->RegisterObject(PROGRAM_ID::PROGRAM_ID_SHADOWMAP, DRAWTARGET_INDEX::DRAWTARGET_CUBE, {index++, 0});
+	}
+
+	graphic->EndCmdBuffer(CMD_INDEX::CMD_SHADOW);
 }
 
 void ObjectManager::update(float dt)

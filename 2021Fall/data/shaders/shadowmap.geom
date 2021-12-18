@@ -1,8 +1,6 @@
 #version 450
-layout (traingles) in;
-layout (triangle_strip, max_vertice=18) out;
-
-uniform mat4 lightMat[6];
+layout (triangles) in;
+layout (triangle_strip, max_vertices=18) out;
 
 layout (binding = 3) uniform lightProj {
 	mat4 lightMat[6];
@@ -19,11 +17,11 @@ void main()
 {
 	for(int face = 0; face < 6; ++face)
 	{
-		gl_Layer = face;
 		for(int i = 0; i < 3; ++i)
 		{
-			fragPosition = gl_in[i].gl_Position;
-			gl_Position = lightMat[face] * fragPosition;
+			gl_Layer = face;
+			fragPosition = gl_in[i].gl_Position.xyz;
+			gl_Position = lightMat[face] * vec4(fragPosition, 1.0);
 			lightPosition = position;
 			lightPlane = far_plane;
 			EmitVertex();

@@ -19,7 +19,7 @@ public:
 	void close();
 
 public:
-	void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, uint32_t offset);
+	void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, std::vector<uint32_t> offset);
 
 private:
 	friend class DescriptorManager;

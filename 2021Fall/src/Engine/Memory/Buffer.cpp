@@ -148,7 +148,7 @@ void VulkanMemoryManager::GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& 
 
         image->format = format;
         image->image = swapchainimages[i];
-        image->imageview = VulkanMemoryManager::createImageView(swapchainimages[i], format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+        image->imageview = VulkanMemoryManager::createImageView(swapchainimages[i], format, 1, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
         images.push_back(image);
     }
@@ -158,11 +158,11 @@ Image* VulkanMemoryManager::CreateFrameBufferImage(VkImageUsageFlags usage, VkFo
 {
     Image* image = new Image(Settings::windowWidth, Settings::windowHeight, ImageType::FRAMEBUFFER);
 
-    VulkanMemoryManager::createImage(Settings::windowWidth, Settings::windowHeight, 1, sample, format,
+    VulkanMemoryManager::createImage(Settings::windowWidth, Settings::windowHeight, 1, 1, sample, format,
         VK_IMAGE_TILING_OPTIMAL, usage,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image->image, image->memory);
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, image->image, image->memory);
 
-    image->imageview = VulkanMemoryManager::createImageView(image->image, format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    image->imageview = VulkanMemoryManager::createImageView(image->image, format, 1, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
     image->format = format;
 
@@ -173,15 +173,32 @@ Image* VulkanMemoryManager::CreateDepthBuffer(VkFormat format, VkSampleCountFlag
 {
     Image* image = new Image(Settings::windowWidth, Settings::windowHeight, ImageType::FRAMEBUFFER);
 
-    VulkanMemoryManager::createImage(Settings::windowWidth, Settings::windowHeight, 1, sample, format, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image->image, image->memory);
+    VulkanMemoryManager::createImage(Settings::windowWidth, Settings::windowHeight, 1, 1, sample, format, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, image->image, image->memory);
 
-    image->imageview = VulkanMemoryManager::createImageView(image->image, format, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+    image->imageview = VulkanMemoryManager::createImageView(image->image, format, 1, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
     VulkanMemoryManager::transitionImageLayout(image->image, format, VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 
     image->format = format;
+
+    return image;
+}
+
+Image* VulkanMemoryManager::CreateShadowMapBuffer(VkFormat format)
+{
+    const uint32_t depthsize = 1024;
+    const VkFormat depthFormat = VK_FORMAT_R16_SFLOAT;
+
+    Image* image = new Image(depthsize, depthsize, ImageType::FRAMEBUFFER);
+
+    VulkanMemoryManager::createImage(depthsize, depthsize, 6, 1, VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, image->image, image->memory);
+
+    image->imageview = VulkanMemoryManager::createImageView(image->image, depthFormat, 6, VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+    image->format = depthFormat;
 
     return image;
 }
@@ -203,8 +220,8 @@ Image* VulkanMemoryManager::CreateTextureImage(int width, int height, unsigned c
     memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(vulkanDevice, stagingBufferMemory);
 
-    VulkanMemoryManager::createImage(static_cast<uint32_t>(width), static_cast<uint32_t>(height), textureMipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, image->image, image->memory);
+    VulkanMemoryManager::createImage(static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1, textureMipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, image->image, image->memory);
 
     VulkanMemoryManager::transitionImageLayout(image->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, textureMipLevels);
     VulkanMemoryManager::copyBufferToImage(stagingBuffer, image->image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
@@ -213,7 +230,7 @@ Image* VulkanMemoryManager::CreateTextureImage(int width, int height, unsigned c
     vkFreeMemory(vulkanDevice, stagingBufferMemory, nullptr);
     VulkanMemoryManager::generateMipmaps(image->image, VK_FORMAT_R8G8B8A8_SRGB, width, height, textureMipLevels);
 
-    image->imageview = VulkanMemoryManager::createImageView(image->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels);
+    image->imageview = VulkanMemoryManager::createImageView(image->image, VK_FORMAT_R8G8B8A8_SRGB, 1, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels);
 
     return image;
 }
@@ -317,7 +334,8 @@ uint32_t VulkanMemoryManager::findMemoryType(uint32_t typeFilter, VkMemoryProper
     throw std::runtime_error("failed to find suitable memory type");
 }
 
-void VulkanMemoryManager::createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+void VulkanMemoryManager::createImage(uint32_t width, uint32_t height, uint32_t layer, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, 
+    VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageCreateFlags flag, VkImage& image, VkDeviceMemory& imageMemory)
 {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -326,14 +344,14 @@ void VulkanMemoryManager::createImage(uint32_t width, uint32_t height, uint32_t 
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
     imageInfo.mipLevels = mipLevels;
-    imageInfo.arrayLayers = 1;
+    imageInfo.arrayLayers = layer;
     imageInfo.format = format;
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.samples = numSamples;
-    imageInfo.flags = 0;
+    imageInfo.flags = flag;
 
     if (vkCreateImage(vulkanDevice, &imageInfo, nullptr, &image) != VK_SUCCESS)
     {
@@ -480,12 +498,12 @@ void VulkanMemoryManager::copyBufferToImage(VkBuffer buffer, VkImage image, uint
     endSingleTimeCommands(commandBuffer);
 }
 
-VkImageView VulkanMemoryManager::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+VkImageView VulkanMemoryManager::createImageView(VkImage image, VkFormat format, uint32_t layercount, VkImageViewType viewtype, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
 {
     VkImageViewCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     createInfo.image = image;
-    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    createInfo.viewType = viewtype;
     createInfo.format = format;
     createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
     createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -495,7 +513,7 @@ VkImageView VulkanMemoryManager::createImageView(VkImage image, VkFormat format,
     createInfo.subresourceRange.baseMipLevel = 0;
     createInfo.subresourceRange.levelCount = mipLevels;
     createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
+    createInfo.subresourceRange.layerCount = layercount;
 
     VkImageView result;
 
