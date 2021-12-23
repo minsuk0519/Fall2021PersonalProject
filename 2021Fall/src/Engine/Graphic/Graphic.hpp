@@ -4,6 +4,7 @@
 #include <array>
 #include <optional>
 #include <vector>
+#include <unordered_map>
 
 //3rd party librarys
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -13,6 +14,7 @@
 #include "GraphicPipeline.hpp"
 #include "Engine/Misc/GUIEnum.hpp"
 #include "Descriptor.hpp"
+#include "Engine/Memory/Buffer.hpp"
 
 //defined in common.glsl
 #define MAX_LIGHT 8
@@ -44,6 +46,16 @@ enum RENDERPASS_INDEX
 	RENDERPASS_PRE = 1,
 	RENDERPASS_DEPTHCUBEMAP = 2,
 	RENDERPASS_MAX = RENDERPASS_DEPTHCUBEMAP + 1,
+};
+
+enum DESCRIPTORSET_INDEX
+{
+	//will be same
+	DESCRIPTORSET_ID_OBJ = 0,
+	DESCRIPTORSET_ID_LIGHT_OBJ = 1,
+	DESCRIPTORSET_ID_DEFERRED = 2,
+	DESCRIPTORSET_ID_SHADOWMAP = 3,
+	DESCRIPTORSET_ID_MAX = 4,
 };
 
 enum CMD_INDEX
@@ -107,13 +119,15 @@ public:
 	void drawGUI() override;
 
 public:
-	void RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid);
-	void RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid, std::vector<uint32_t> indices);
+	void RegisterObject(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid);
+	void RegisterObject(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid, std::vector<uint32_t> indices);
 
-	void AddDrawInfo(DrawInfo drawinfo);
+	void AddDrawInfo(DrawInfo drawinfo, UniformBufferIndex uniformid);
 
-	void BeginCmdBuffer(CMD_INDEX cmdindex, RENDERPASS_INDEX renderpassindex);
+	void BeginCmdBuffer(CMD_INDEX cmdindex);
+	void BeginRenderPass(CMD_INDEX cmdindex, RENDERPASS_INDEX renderpassindex, uint32_t framebufferindex = 0);
 	void EndCmdBuffer(CMD_INDEX cmdindex);
+	void EndRenderPass(CMD_INDEX cmdindex);
 
 private:
 	std::vector<VkCommandBuffer> vulkanCommandBuffers;
@@ -138,7 +152,7 @@ private:
 	uint32_t textureMipLevels;
 
 	std::array<GraphicPipeline*, PROGRAM_ID::PROGRAM_ID_MAX> graphicPipelines;
-	std::array<DescriptorSet*, PROGRAM_ID::PROGRAM_ID_MAX> descriptorSets;
+	std::array<DescriptorSet*, DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_MAX> descriptorSets;
 
 	std::array<Renderpass*, RENDERPASS_INDEX::RENDERPASS_MAX> renderPasses;
 
@@ -152,7 +166,7 @@ private:
 	GUISetting guiSetting;
 	DescriptorManager* descriptorManager = nullptr;
 
-	std::vector<DrawInfo> drawinfos;
+	std::unordered_map<UniformBufferIndex, std::vector<DrawInfo>> drawinfos;
 
 	CMD_INDEX currentCommandIndex;
 

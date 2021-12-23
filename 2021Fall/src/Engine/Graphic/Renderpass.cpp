@@ -25,14 +25,23 @@ void Renderpass::createRenderPass()
 
         VkAttachmentReference attachmentRef;
 
+        auto findpred = [&](const VkAttachmentReference& target)->bool {
+            return target.attachment == attach.bindLocation;
+        };
+
         if (attach.type == AttachmentType::ATTACHMENT_COLOR)
         {
+            if (std::find_if(colorattachmentRefs.begin(), colorattachmentRefs.end(), findpred) != colorattachmentRefs.end()) continue;
+
             attachmentRef.attachment = attach.bindLocation;
             attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
             colorattachmentRefs.push_back(attachmentRef);
         }
         else if (attach.type == AttachmentType::ATTACHMENT_RESOLVE)
         {
+            if (std::find_if(resolvedattachmentRefs.begin(), resolvedattachmentRefs.end(), findpred) != resolvedattachmentRefs.end()) continue;
+            
             attachmentRef.attachment = attach.bindLocation;
             attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             resolvedattachmentRefs.push_back(attachmentRef);
@@ -46,10 +55,10 @@ void Renderpass::createRenderPass()
         }
     }
 
-    if (colorattachmentRefs.size() != resolvedattachmentRefs.size())
-    {
-        throw std::runtime_error("Error : renderpass color attachment size != resolved attachment size");
-    }
+    //if (colorattachmentRefs.size() != resolvedattachmentRefs.size())
+    //{
+    //    throw std::runtime_error("Error : renderpass color attachment size != resolved attachment size");
+    //}
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;

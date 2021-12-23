@@ -19,7 +19,7 @@ void Object::update(float dt)
 
 	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
 
-	graphic->AddDrawInfo({ &uniform, sizeof(ObjectUniform), 128 });
+	graphic->AddDrawInfo({ &uniform, sizeof(ObjectUniform), 128 }, uniformID);
 }
 
 void Object::close()
@@ -58,10 +58,17 @@ ObjectUniform& Object::GetUniform()
 	return uniform;
 }
 
-void Object::SetDrawBehavior(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex)
+void Object::SetDrawBehavior(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex, UniformBufferIndex uniformbufferid)
 {
 	programID = programid;
+	descriptorsetID = descriptorsetid;
 	drawtargetIndex = drawtargetindex;
+	uniformID = uniformbufferid;
+}
+
+unsigned int Object::getID() const
+{
+	return id;
 }
 
 Object::Object(Level* level, unsigned int objid, std::string objname) : ownerLevel(level), id(objid), name(objname), Interface() {}
@@ -70,5 +77,5 @@ void Object::postinit()
 {
 	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
 	
-	graphic->RegisterObject(programID, drawtargetIndex);
+	graphic->RegisterObject(descriptorsetID, programID, drawtargetIndex);
 }

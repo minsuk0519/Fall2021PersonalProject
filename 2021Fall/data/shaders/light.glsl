@@ -24,6 +24,29 @@ layout(binding = 2) uniform lights {
 	int lightNum;
 };
 
+layout (binding = 6) uniform samplerCube depthCubemap[MAX_LIGHT];
+
+float computeShadow(vec3 view)
+{
+	for(int i = 0; i < lightNum; ++i)
+	{
+		vec3 fragToLight = view - lightsources[i].position;
+
+		fragToLight = inverse(mat3(transpose(inverse(cam.worldToCamera)))) * fragToLight;
+
+		float closestDepth = texture(depthCubemap[i], normalize(fragToLight)).r;
+
+		closestDepth *= 100.0;
+
+		float currentDepth = length(fragToLight);
+
+		float bias = 0.05; 
+		float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;
+
+		return shadow;
+	}
+}
+
 vec3 computePointLight(vec3 surfacePos, vec3 normal, vec3 lightPos, lightData lightsource)
 {
 	vec3 surfaceToLight = lightPos - surfacePos;

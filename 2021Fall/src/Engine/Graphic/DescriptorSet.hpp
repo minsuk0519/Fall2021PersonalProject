@@ -20,6 +20,7 @@ public:
 
 public:
 	void BindDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout, std::vector<uint32_t> offset);
+	void BindDescriptorSetNoIndex(VkCommandBuffer commandBuffer, VkPipelineLayout pipelineLayout);
 
 private:
 	friend class DescriptorManager;
@@ -29,4 +30,6 @@ private:
 
 	uint32_t dynamic_count = 0;
 	std::vector<uint32_t> dynamic_offset;
+
+	uint32_t currentindex = 0;
 };

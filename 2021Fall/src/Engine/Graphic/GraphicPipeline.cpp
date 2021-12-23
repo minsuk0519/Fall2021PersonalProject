@@ -1,11 +1,11 @@
 #include "GraphicPipeline.hpp"
 #include "Engine/Misc/helper.hpp"
-#include "Engine/Misc/settings.hpp"
 #include "VertexInfo.hpp"
 
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
-void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum, std::vector<VkPipelineShaderStageCreateInfo> shadermodules)
+void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum, std::vector<VkPipelineShaderStageCreateInfo> shadermodules,
+	uint32_t width, uint32_t height)
 {
 	if (vulkanpipelinecache == VK_NULL_HANDLE)
 	{
@@ -25,14 +25,14 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelay
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = static_cast<float>(Settings::windowWidth);
-	viewport.height = static_cast<float>(Settings::windowHeight);
+	viewport.width = static_cast<float>(width);
+	viewport.height = static_cast<float>(height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0,0 };
-	scissor.extent = { Settings::windowWidth, Settings::windowHeight };
+	scissor.extent = { width, height };
 	
 	VkPipelineViewportStateCreateInfo viewportState{};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

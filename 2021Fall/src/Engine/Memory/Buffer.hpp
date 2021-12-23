@@ -18,6 +18,7 @@ enum UniformBufferIndex
 {
 	UNIFORM_CAMERA_TRANSFORM = 0,
 	UNIFORM_OBJECT_MATRIX,
+	UNIFORM_LIGHT_OBJECT_MATRIX,
 	UNIFORM_GUI_SETTING,
 	UNIFORM_LIGHTDATA,
 	UNIFORM_LIGHTPROJ,
@@ -40,7 +41,7 @@ public:
 	static void GetSwapChainImage(VkSwapchainKHR swapchain, uint32_t& imagecount, std::vector<Image*>& images, const VkFormat& format);
 	static Image* CreateFrameBufferImage(VkImageUsageFlags usage, VkFormat format, VkSampleCountFlagBits sample);
 	static Image* CreateDepthBuffer(VkFormat format, VkSampleCountFlagBits sample);
-	static Image* CreateShadowMapBuffer(VkFormat format);
+	static Image* CreateShadowMapBuffer();
 	static Image* CreateTextureImage(int width, int height, unsigned char* pixels);
 
 	static Buffer* GetBuffer(uint32_t index);
@@ -69,7 +70,7 @@ public:
 
 	static VkCommandBuffer beginSingleTimeCommands();
 	static void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-	static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+	static void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layercount, uint32_t mipLevels);
 	static void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
 	static VkImageView createImageView(VkImage image, VkFormat format, uint32_t layercount, VkImageViewType viewtype, VkImageAspectFlags aspectFlags, uint32_t mipLevels);

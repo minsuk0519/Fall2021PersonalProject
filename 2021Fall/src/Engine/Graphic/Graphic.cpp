@@ -51,6 +51,9 @@ void Graphic::init()
         const uint32_t MAX_OBJECT_SIZE = 20;
         uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_OBJECT_MATRIX, bufferSize, MAX_OBJECT_SIZE);
 
+        bufferSize = 128;
+        uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_LIGHT_OBJECT_MATRIX, bufferSize, MAX_LIGHT);
+
         bufferSize = sizeof(GUISetting);
         uniform = VulkanMemoryManager::CreateUniformBuffer(UNIFORM_GUI_SETTING, bufferSize);
 
@@ -230,7 +233,7 @@ void Graphic::init()
 
         //stbi_image_free(pixels);
 
-        images.push_back(VulkanMemoryManager::CreateShadowMapBuffer(vulkanDepthFormat));
+        for(uint32_t i = 0; i < MAX_LIGHT; ++i) images.push_back(VulkanMemoryManager::CreateShadowMapBuffer());
     }
 
     //sampler
@@ -361,11 +364,14 @@ void Graphic::update(float dt)
     
     //pre render
     {
-        uint32_t drawsize = static_cast<uint32_t>(drawinfos.size());
-        for (uint32_t index = 0; index < drawsize; ++index)
+        for (auto uniform : drawinfos)
         {
-            VulkanMemoryManager::MapMemory(UNIFORM_OBJECT_MATRIX, drawinfos[index].uniformdata, drawinfos[index].uniformsize, drawinfos[index].uniformoffset * index);
-
+            auto uniforminfo = uniform.second;
+            uint32_t drawsize = static_cast<uint32_t>(uniforminfo.size());
+            for (uint32_t index = 0; index < drawsize; ++index)
+            {
+                VulkanMemoryManager::MapMemory(uniform.first, uniforminfo[index].uniformdata, uniforminfo[index].uniformsize, uniforminfo[index].uniformoffset * index);
+            }
         }
 
         VkSubmitInfo submitInfo{};
@@ -381,6 +387,10 @@ void Graphic::update(float dt)
 
         vkQueueWaitIdle(application->GetGraphicQueue());
 
+        for (auto uniform : drawinfos)
+        {
+            uniform.second.clear();
+        }
         drawinfos.clear();
     }
 
@@ -552,33 +562,37 @@ void Graphic::DefineShadowMap()
         data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_LIGHTPROJ)->GetDescriptorInfo();
 
-        descriptorSets[PROGRAM_ID::PROGRAM_ID_SHADOWMAP] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_SHADOWMAP, data);
+        descriptorSets[DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_SHADOWMAP] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_SHADOWMAP, data);
     }
 
     //renderpass/framebuffer
     {
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = VK_FORMAT_R16_SFLOAT;
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkAttachmentDescription attachment{};
+        attachment.format = VK_FORMAT_R16_SFLOAT;
+        attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP] = new Renderpass(vulkanDevice);
         Renderpass::Attachment attach;
 
-        attach.attachmentDescription = depthAttachment;
+        attach.attachmentDescription = attachment;
         attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
         attach.bindLocation = 0;
-        attach.imageViews.push_back(images[0]->GetImageView());
+        
+        for (uint32_t i = 0; i < MAX_LIGHT; ++i)
+        {
+            attach.imageViews.push_back(images[i]->GetImageView());
+        }
         renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->addAttachment(attach);
-        attach.imageViews.clear();
 
+        attach.imageViews.clear();
         renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->createRenderPass();
-        renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->createFramebuffers(1024, 1024, 6);
+        renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->createFramebuffers(1024, 1024, 6, MAX_LIGHT);
     }
 
     {
@@ -604,7 +618,8 @@ void Graphic::DefineShadowMap()
         VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_SHADOWMAP);
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_SHADOWMAP] = new GraphicPipeline(vulkanDevice);
-        graphicPipelines[PROGRAM_ID::PROGRAM_ID_SHADOWMAP]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_SHADOWMAP));
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_SHADOWMAP]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_SHADOWMAP),
+            1024, 1024);
     }
 
     //command buffer will be defined in objectmanager
@@ -634,7 +649,15 @@ void Graphic::DefinePostProcess()
             data.back().imageinfo = imageInfo;
         }
 
-        descriptorSets[PROGRAM_ID::PROGRAM_ID_DEFERRED] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
+        for (uint32_t i = 0; i < MAX_LIGHT; ++i)
+        {
+            imageInfo.imageView = images[i]->GetImageView();
+            data.push_back(DescriptorData());
+            data.back().imageinfo = imageInfo;
+            data.back().arrayindex = MAX_LIGHT;
+        }
+
+        descriptorSets[DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_DEFERRED] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DEFERRED, data);
     }
 
     //renderpass/framebuffer
@@ -679,7 +702,8 @@ void Graphic::DefinePostProcess()
         VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED);
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED] = new GraphicPipeline(vulkanDevice);
-        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DEFERRED));
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DEFERRED),
+            Settings::windowWidth, Settings::windowHeight);
     }
 
     //create commandbuffer for post rendering
@@ -700,7 +724,7 @@ void Graphic::DefinePostProcess()
 
             vkCmdBindPipeline(vulkanCommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED]->GetPipeline());
 
-            descriptorSets[PROGRAM_ID::PROGRAM_ID_DEFERRED]->BindDescriptorSet(vulkanCommandBuffers[i], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED), {});
+            descriptorSets[DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_DEFERRED]->BindDescriptorSet(vulkanCommandBuffers[i], descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DEFERRED), {});
 
             DrawDrawtarget(vulkanCommandBuffers[i], drawtargets[DRAWTARGET_INDEX::DRAWTARGET_RECTANGLE]);
 
@@ -808,18 +832,18 @@ void Graphic::DefineDrawBehavior()
         data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_OBJECT_MATRIX)->GetDescriptorInfo();
 
-        descriptorSets[PROGRAM_ID::PROGRAM_ID_BASERENDER] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
+        descriptorSets[DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_OBJ] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
     }
-
+    
     {
         std::vector<DescriptorData> data;
 
         data.push_back(DescriptorData());
         data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_CAMERA_TRANSFORM)->GetDescriptorInfo();
         data.push_back(DescriptorData());
-        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_OBJECT_MATRIX)->GetDescriptorInfo();
+        data.back().bufferinfo = VulkanMemoryManager::GetUniformBuffer(UNIFORM_LIGHT_OBJECT_MATRIX)->GetDescriptorInfo();
 
-        descriptorSets[PROGRAM_ID::PROGRAM_ID_DIFFUSE] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_DIFFUSE, data);
+        descriptorSets[DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_LIGHT_OBJ] = descriptorManager->CreateDescriptorSet(PROGRAM_ID::PROGRAM_ID_BASERENDER, data);
     }
 
     {
@@ -917,7 +941,8 @@ void Graphic::DefineDrawBehavior()
         VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_BASERENDER);
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER] = new GraphicPipeline(vulkanDevice);
-        graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER));
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER),
+            Settings::windowWidth, Settings::windowHeight);
     }
 
     {
@@ -942,7 +967,8 @@ void Graphic::DefineDrawBehavior()
         VkPipelineLayout layout = descriptorManager->GetpipeLineLayout(PROGRAM_ID::PROGRAM_ID_DIFFUSE);
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE] = new GraphicPipeline(vulkanDevice);
-        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DIFFUSE));
+        graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DIFFUSE),
+            Settings::windowWidth, Settings::windowHeight);
     }
 
 }
@@ -995,32 +1021,30 @@ VkSampleCountFlagBits Graphic::getMaxUsableSampleCount()
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-void Graphic::RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid)
+void Graphic::RegisterObject(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid)
 {
-    static uint32_t index = 0;
-
     vkCmdBindPipeline(vulkanCommandBuffers[currentCommandIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[programid]->GetPipeline());
 
-    descriptorSets[programid]->BindDescriptorSet(vulkanCommandBuffers[currentCommandIndex], descriptorManager->GetpipeLineLayout(programid), { index++ });
+    descriptorSets[descriptorsetid]->BindDescriptorSetNoIndex(vulkanCommandBuffers[currentCommandIndex], descriptorManager->GetpipeLineLayout(programid));
 
     DrawDrawtarget(vulkanCommandBuffers[currentCommandIndex], drawtargets[drawtargetid]);
 }
 
-void Graphic::RegisterObject(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid, std::vector<uint32_t> indices)
+void Graphic::RegisterObject(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid, std::vector<uint32_t> indices)
 {
     vkCmdBindPipeline(vulkanCommandBuffers[currentCommandIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicPipelines[programid]->GetPipeline());
 
-    descriptorSets[programid]->BindDescriptorSet(vulkanCommandBuffers[currentCommandIndex], descriptorManager->GetpipeLineLayout(programid), indices);
+    descriptorSets[descriptorsetid]->BindDescriptorSet(vulkanCommandBuffers[currentCommandIndex], descriptorManager->GetpipeLineLayout(programid), indices);
 
     DrawDrawtarget(vulkanCommandBuffers[currentCommandIndex], drawtargets[drawtargetid]);
 }
 
-void Graphic::AddDrawInfo(DrawInfo drawinfo)
+void Graphic::AddDrawInfo(DrawInfo drawinfo, UniformBufferIndex uniformid)
 {
-    drawinfos.push_back(drawinfo);
+    drawinfos[uniformid].push_back(drawinfo);
 }
 
-void Graphic::BeginCmdBuffer(CMD_INDEX cmdindex, RENDERPASS_INDEX renderpassindex)
+void Graphic::BeginCmdBuffer(CMD_INDEX cmdindex)
 {
     currentCommandIndex = cmdindex;
 
@@ -1033,18 +1057,24 @@ void Graphic::BeginCmdBuffer(CMD_INDEX cmdindex, RENDERPASS_INDEX renderpassinde
     {
         throw std::runtime_error("failed to begin recording command buffer!");
     }
+}
 
-    renderPasses[renderpassindex]->beginRenderpass(vulkanCommandBuffers[cmdindex]);
+void Graphic::BeginRenderPass(CMD_INDEX cmdindex, RENDERPASS_INDEX renderpassindex, uint32_t framebufferindex)
+{
+    renderPasses[renderpassindex]->beginRenderpass(vulkanCommandBuffers[cmdindex], framebufferindex);
 }
 
 void Graphic::EndCmdBuffer(CMD_INDEX cmdindex)
 {
-    vkCmdEndRenderPass(vulkanCommandBuffers[cmdindex]);
-
     if (vkEndCommandBuffer(vulkanCommandBuffers[cmdindex]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
     }
+}
+
+void Graphic::EndRenderPass(CMD_INDEX cmdindex)
+{
+    vkCmdEndRenderPass(vulkanCommandBuffers[cmdindex]);
 }
 
 void DrawTarget::AddVertex(VertexInfo info)

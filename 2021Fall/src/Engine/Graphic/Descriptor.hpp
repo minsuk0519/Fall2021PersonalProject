@@ -35,6 +35,8 @@ struct Descriptor
 {
 	VkDescriptorType type;
 	uint32_t binding;
+
+	uint32_t count = 1;
 };
 
 struct Shader
@@ -49,6 +51,8 @@ struct DescriptorData
 {
 	std::optional<VkDescriptorBufferInfo> bufferinfo;
 	std::optional<VkDescriptorImageInfo> imageinfo;
+
+	std::optional<uint32_t> arrayindex;
 };
 
 struct Program

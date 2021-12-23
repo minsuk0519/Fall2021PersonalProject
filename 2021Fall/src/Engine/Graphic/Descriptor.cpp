@@ -1,6 +1,7 @@
 #include "Descriptor.hpp"
 #include "Engine/Misc/helper.hpp"
 #include "DescriptorSet.hpp"
+#include "Graphic.hpp"
 
 //standard library
 #include <stdexcept>
@@ -26,7 +27,9 @@ void DescriptorManager::init()
 			{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2},
 			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3},
 			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4},
-			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5}
+			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5},
+
+			{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 6, MAX_LIGHT},
 		} };
 	shaders[SHADER_ID_DIFFUSE_VERTEX] = { CreateShaderModule("data/shaders/cuberendervert.spv"), VK_SHADER_STAGE_VERTEX_BIT, 
 		{
@@ -134,12 +137,12 @@ void DescriptorManager::SetupShaderPrograms(const std::array<std::vector<SHADER_
 
 				VkDescriptorSetLayoutBinding binding;
 				binding.binding = descriptor.binding;
-				binding.descriptorCount = 1;
+				binding.descriptorCount = descriptor.count;
 				binding.descriptorType = descriptor.type;
 				binding.stageFlags = stagebits;
 				binding.pImmutableSamplers = nullptr;
 				layoutbindings.push_back(binding);
-				programsDescriptor[programindex].push_back({ descriptor.type, descriptor.binding });
+				programsDescriptor[programindex].push_back({ descriptor.type, descriptor.binding, descriptor.count });
 			}
 		}
 
@@ -234,7 +237,7 @@ DescriptorSet* DescriptorManager::CreateDescriptorSet(const PROGRAM_ID& id, cons
 
 	std::vector<VkWriteDescriptorSet> descriptorWrites{};
 
-	if (programsDescriptor[id].size() != data.size()) throw std::runtime_error("the descriptor size of target shader program is different with data size");
+	//if (programsDescriptor[id].size() != data.size()) throw std::runtime_error("the descriptor size of target shader program is different with data size");
 
 	uint32_t dataindex = 0;
 	for (auto descriptor : programsDescriptor[id])
@@ -243,21 +246,24 @@ DescriptorSet* DescriptorManager::CreateDescriptorSet(const PROGRAM_ID& id, cons
 		descriptorwrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorwrite.dstSet = descriptorset->descriptorSet;
 		descriptorwrite.dstBinding = descriptor.binding;
-		descriptorwrite.dstArrayElement = 0;
 		descriptorwrite.descriptorType = descriptor.type;
 		descriptorwrite.descriptorCount = 1;
-		descriptorwrite.pBufferInfo = (data[dataindex].bufferinfo.has_value() ? &data[dataindex].bufferinfo.value() : nullptr);
-		descriptorwrite.pImageInfo = (data[dataindex].imageinfo.has_value() ? &data[dataindex].imageinfo.value() : nullptr);
-		if (descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-		{
-			++(descriptorset->dynamic_count);
-			descriptorset->dynamic_offset.push_back(static_cast<uint32_t>(descriptorwrite.pBufferInfo->range));
-		}
 		descriptorwrite.pTexelBufferView = nullptr;
 		descriptorwrite.pNext = nullptr;
 
-		++dataindex;
-		descriptorWrites.push_back(descriptorwrite);
+		for (uint32_t i = 0; i < descriptor.count; ++i)
+		{
+			descriptorwrite.dstArrayElement = i;
+			descriptorwrite.pBufferInfo = (data[dataindex].bufferinfo.has_value() ? &data[dataindex].bufferinfo.value() : nullptr);
+			descriptorwrite.pImageInfo = (data[dataindex].imageinfo.has_value() ? &data[dataindex].imageinfo.value() : nullptr);
+			if (descriptor.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+			{
+				++(descriptorset->dynamic_count);
+				descriptorset->dynamic_offset.push_back(static_cast<uint32_t>(descriptorwrite.pBufferInfo->range));
+			}
+			descriptorWrites.push_back(descriptorwrite);
+			++dataindex;
+		}
 	}
 
 	vkUpdateDescriptorSets(vulkanDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);

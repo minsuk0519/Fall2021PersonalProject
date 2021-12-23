@@ -179,14 +179,14 @@ Image* VulkanMemoryManager::CreateDepthBuffer(VkFormat format, VkSampleCountFlag
     image->imageview = VulkanMemoryManager::createImageView(image->image, format, 1, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
     VulkanMemoryManager::transitionImageLayout(image->image, format, VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1, 1);
 
     image->format = format;
 
     return image;
 }
 
-Image* VulkanMemoryManager::CreateShadowMapBuffer(VkFormat format)
+Image* VulkanMemoryManager::CreateShadowMapBuffer()
 {
     const uint32_t depthsize = 1024;
     const VkFormat depthFormat = VK_FORMAT_R16_SFLOAT;
@@ -194,7 +194,7 @@ Image* VulkanMemoryManager::CreateShadowMapBuffer(VkFormat format)
     Image* image = new Image(depthsize, depthsize, ImageType::FRAMEBUFFER);
 
     VulkanMemoryManager::createImage(depthsize, depthsize, 6, 1, VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, image->image, image->memory);
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, image->image, image->memory);
 
     image->imageview = VulkanMemoryManager::createImageView(image->image, depthFormat, 6, VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 
@@ -223,7 +223,7 @@ Image* VulkanMemoryManager::CreateTextureImage(int width, int height, unsigned c
     VulkanMemoryManager::createImage(static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1, textureMipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 0, image->image, image->memory);
 
-    VulkanMemoryManager::transitionImageLayout(image->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, textureMipLevels);
+    VulkanMemoryManager::transitionImageLayout(image->image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, textureMipLevels);
     VulkanMemoryManager::copyBufferToImage(stagingBuffer, image->image, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
     vkDestroyBuffer(vulkanDevice, stagingBuffer, nullptr);
@@ -409,7 +409,7 @@ void VulkanMemoryManager::endSingleTimeCommands(VkCommandBuffer commandBuffer)
     vkFreeCommandBuffers(vulkanDevice, vulkanCommandpool, 1, &commandBuffer);
 }
 
-void VulkanMemoryManager::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+void VulkanMemoryManager::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layercount, uint32_t mipLevels)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -426,7 +426,7 @@ void VulkanMemoryManager::transitionImageLayout(VkImage image, VkFormat format, 
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = mipLevels;
     barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.layerCount = layercount;
 
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;

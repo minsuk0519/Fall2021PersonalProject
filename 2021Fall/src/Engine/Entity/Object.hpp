@@ -2,6 +2,7 @@
 #include "Engine/Common/Interface.hpp"
 #include "Engine/Common/Transform.hpp"
 #include "Engine/Graphic/Graphic.hpp"
+#include "Engine/Memory/Buffer.hpp"
 
 //standard library
 #include <string>
@@ -42,7 +43,8 @@ public:
 	void* GetUniformPointer();
 	ObjectUniform& GetUniform();
 
-	void SetDrawBehavior(PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex);
+	void SetDrawBehavior(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex, UniformBufferIndex uniformbufferid);
+	unsigned int getID() const;
 
 protected:
 	Object(Level* level, unsigned int objid, std::string objname = "");
@@ -58,5 +60,7 @@ protected:
 
 private:
 	PROGRAM_ID programID = PROGRAM_ID::PROGRAM_ID_BASERENDER;
+	DESCRIPTORSET_INDEX descriptorsetID = DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_OBJ;
 	DRAWTARGET_INDEX drawtargetIndex = DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE;
+	UniformBufferIndex uniformID = UniformBufferIndex::UNIFORM_OBJECT_MATRIX;
 };

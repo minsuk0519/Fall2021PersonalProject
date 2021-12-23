@@ -1,6 +1,8 @@
 #include "ObjectManager.hpp"
 #include "Engine/Common/Application.hpp"
 #include "Engine/Graphic/Graphic.hpp"
+#include "Engine/Entity/Light.hpp"
+#include "Engine/Entity/Camera.hpp"
 
 ObjectManager::ObjectManager(Level* level) : ownerLevel(level)
 {
@@ -14,23 +16,32 @@ void ObjectManager::postinit()
 {
 	Graphic* graphic = Application::APP()->GetSystem<Graphic>();
 
-	graphic->BeginCmdBuffer(CMD_INDEX::CMD_BASE, RENDERPASS_INDEX::RENDERPASS_PRE);
+	graphic->BeginCmdBuffer(CMD_INDEX::CMD_BASE);
+	graphic->BeginRenderPass(CMD_INDEX::CMD_BASE, RENDERPASS_INDEX::RENDERPASS_PRE);
 
 	for (auto obj : objectList)
 	{
 		obj->postinit();
 	}
 
+	graphic->EndRenderPass(CMD_INDEX::CMD_BASE);
 	graphic->EndCmdBuffer(CMD_INDEX::CMD_BASE);
 
-	graphic->BeginCmdBuffer(CMD_INDEX::CMD_SHADOW, RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP);
-
-	uint32_t index = 0;
-	for (auto obj : objectList)
+	graphic->BeginCmdBuffer(CMD_INDEX::CMD_SHADOW);
+	for (uint32_t i = 0; i < MAX_LIGHT; ++i)
 	{
-		graphic->RegisterObject(PROGRAM_ID::PROGRAM_ID_SHADOWMAP, DRAWTARGET_INDEX::DRAWTARGET_CUBE, {index++, 0});
-	}
+		graphic->BeginRenderPass(CMD_INDEX::CMD_SHADOW, RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP, i);
 
+		uint32_t index = 0;
+		for (auto obj : objectList)
+		{
+			if (dynamic_cast<Light*>(obj) != nullptr) continue;
+			if (dynamic_cast<Camera*>(obj) != nullptr) continue;
+			graphic->RegisterObject(DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_SHADOWMAP, PROGRAM_ID::PROGRAM_ID_SHADOWMAP, DRAWTARGET_INDEX::DRAWTARGET_CUBE, { index++, i });
+		}
+
+		graphic->EndRenderPass(CMD_INDEX::CMD_SHADOW);
+	}
 	graphic->EndCmdBuffer(CMD_INDEX::CMD_SHADOW);
 }
 
