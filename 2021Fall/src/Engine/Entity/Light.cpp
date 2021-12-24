@@ -41,11 +41,12 @@ void PointLight::update(float dt)
 {
 	lightproj.far_plane = 100.0f;
 	lightproj.position = transform.GetPosition();
-	glm::mat4 shadowproj = glm::perspectiveLH_NO(glm::radians(90.0f), 1.0f, 1.0f, lightproj.far_plane);
+	glm::mat4 shadowproj = glm::perspectiveLH_NO(glm::radians(90.0f), 1.0f, 0.1f, lightproj.far_plane);
+	shadowproj[1][1] *= -1.0f;
 	lightproj.projection[0] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 	lightproj.projection[1] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-	lightproj.projection[2] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
-	lightproj.projection[3] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+	lightproj.projection[2] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+	lightproj.projection[3] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
 	lightproj.projection[4] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 1.0, 0.0));
 	lightproj.projection[5] = shadowproj * glm::lookAtLH(lightproj.position, lightproj.position + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
 

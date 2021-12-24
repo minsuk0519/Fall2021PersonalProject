@@ -5,7 +5,7 @@
 GraphicPipeline::GraphicPipeline(VkDevice device) : vulkanDevice(device) {}
 
 void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum, std::vector<VkPipelineShaderStageCreateInfo> shadermodules,
-	uint32_t width, uint32_t height)
+	uint32_t width, uint32_t height, bool enableCull)
 {
 	if (vulkanpipelinecache == VK_NULL_HANDLE)
 	{
@@ -47,7 +47,7 @@ void GraphicPipeline::init(VkRenderPass renderpass, VkPipelineLayout pipelinelay
 	rasterizer.rasterizerDiscardEnable = VK_FALSE;
 	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizer.lineWidth = 1.0f;
-	rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;// VK_CULL_MODE_BACK_BIT;
+	rasterizer.cullMode = (enableCull) ? VK_CULL_MODE_FRONT_BIT : VK_CULL_MODE_NONE;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f;

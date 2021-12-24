@@ -188,15 +188,18 @@ Image* VulkanMemoryManager::CreateDepthBuffer(VkFormat format, VkSampleCountFlag
 
 Image* VulkanMemoryManager::CreateShadowMapBuffer()
 {
-    const uint32_t depthsize = 1024;
-    const VkFormat depthFormat = VK_FORMAT_R16_SFLOAT;
+    const uint32_t depthsize = Settings::shadowmapSize;
+    const VkFormat depthFormat = VK_FORMAT_D16_UNORM;
 
     Image* image = new Image(depthsize, depthsize, ImageType::FRAMEBUFFER);
 
     VulkanMemoryManager::createImage(depthsize, depthsize, 6, 1, VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, image->image, image->memory);
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, image->image, image->memory);
 
-    image->imageview = VulkanMemoryManager::createImageView(image->image, depthFormat, 6, VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+    image->imageview = VulkanMemoryManager::createImageView(image->image, depthFormat, 6, VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+    VulkanMemoryManager::transitionImageLayout(image->image, VK_FORMAT_D16_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 6, 1);
 
     image->format = depthFormat;
 

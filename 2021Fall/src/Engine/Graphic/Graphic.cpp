@@ -568,7 +568,7 @@ void Graphic::DefineShadowMap()
     //renderpass/framebuffer
     {
         VkAttachmentDescription attachment{};
-        attachment.format = VK_FORMAT_R16_SFLOAT;
+        attachment.format = VK_FORMAT_D16_UNORM;
         attachment.samples = VK_SAMPLE_COUNT_1_BIT;
         attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -581,7 +581,7 @@ void Graphic::DefineShadowMap()
         Renderpass::Attachment attach;
 
         attach.attachmentDescription = attachment;
-        attach.type = Renderpass::AttachmentType::ATTACHMENT_COLOR;
+        attach.type = Renderpass::AttachmentType::ATTACHMENT_DEPTH;
         attach.bindLocation = 0;
         
         for (uint32_t i = 0; i < MAX_LIGHT; ++i)
@@ -619,7 +619,7 @@ void Graphic::DefineShadowMap()
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_SHADOWMAP] = new GraphicPipeline(vulkanDevice);
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_SHADOWMAP]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_SHADOWMAP),
-            1024, 1024);
+            1024, 1024, false);
     }
 
     //command buffer will be defined in objectmanager
@@ -703,7 +703,7 @@ void Graphic::DefinePostProcess()
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED] = new GraphicPipeline(vulkanDevice);
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_DEFERRED]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_POST]->getRenderpass(), layout, VK_SAMPLE_COUNT_1_BIT, vertexInputInfo, 1, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DEFERRED),
-            Settings::windowWidth, Settings::windowHeight);
+            Settings::windowWidth, Settings::windowHeight, false);
     }
 
     //create commandbuffer for post rendering
@@ -942,7 +942,7 @@ void Graphic::DefineDrawBehavior()
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER] = new GraphicPipeline(vulkanDevice);
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_BASERENDER]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_BASERENDER),
-            Settings::windowWidth, Settings::windowHeight);
+            Settings::windowWidth, Settings::windowHeight, true);
     }
 
     {
@@ -968,7 +968,7 @@ void Graphic::DefineDrawBehavior()
 
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE] = new GraphicPipeline(vulkanDevice);
         graphicPipelines[PROGRAM_ID::PROGRAM_ID_DIFFUSE]->init(renderPasses[RENDERPASS_INDEX::RENDERPASS_PRE]->getRenderpass(), layout, vulkanMSAASamples, vertexInputInfo, 3, descriptorManager->Getshadermodule(PROGRAM_ID::PROGRAM_ID_DIFFUSE),
-            Settings::windowWidth, Settings::windowHeight);
+            Settings::windowWidth, Settings::windowHeight, true);
     }
 
 }

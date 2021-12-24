@@ -12,7 +12,7 @@ public:
 	GraphicPipeline(VkDevice device);
 
 	void init(VkRenderPass renderpass, VkPipelineLayout pipelinelayout, VkSampleCountFlagBits msaaSamples, VkPipelineVertexInputStateCreateInfo inputstate, uint32_t colorNum, std::vector<VkPipelineShaderStageCreateInfo> shadermodules,
-		uint32_t width, uint32_t height);
+		uint32_t width, uint32_t height, bool enableCull);
 	void close();
 
 	VkPipeline GetPipeline() const;

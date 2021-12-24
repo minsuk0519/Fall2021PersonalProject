@@ -28,6 +28,8 @@ layout (binding = 6) uniform samplerCube depthCubemap[MAX_LIGHT];
 
 float computeShadow(vec3 view)
 {
+	float result = 0;
+
 	for(int i = 0; i < lightNum; ++i)
 	{
 		vec3 fragToLight = view - lightsources[i].position;
@@ -42,9 +44,10 @@ float computeShadow(vec3 view)
 
 		float bias = 0.05; 
 		float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;
-
-		return shadow;
+		result += shadow;
 	}
+	
+	return result;
 }
 
 vec3 computePointLight(vec3 surfacePos, vec3 normal, vec3 lightPos, lightData lightsource)
