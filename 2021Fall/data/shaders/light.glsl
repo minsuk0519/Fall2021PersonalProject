@@ -26,28 +26,37 @@ layout(binding = 2) uniform lights {
 
 layout (binding = 6) uniform samplerCube depthCubemap[MAX_LIGHT];
 
-float computeShadow(vec3 view)
+const vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3(1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1), vec3(-1, 1, 1), 
+   vec3(1, 1, -1), vec3(1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
+   vec3(1, 1, 0), vec3(1, -1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
+   vec3(1, 0, 1), vec3(-1, 0, 1), vec3(1, 0, -1), vec3(-1, 0, -1),
+   vec3(0, 1, 1), vec3(0, -1, 1), vec3(0, -1, -1), vec3(0, 1, -1)
+);
+
+const int samples = 20;
+
+float computeShadow(vec3 view, float offset, int lightindex)
 {
-	float result = 0;
-
-	for(int i = 0; i < lightNum; ++i)
-	{
-		vec3 fragToLight = view - lightsources[i].position;
-
-		fragToLight = inverse(mat3(transpose(inverse(cam.worldToCamera)))) * fragToLight;
-
-		float closestDepth = texture(depthCubemap[i], normalize(fragToLight)).r;
-
-		closestDepth *= 100.0;
-
-		float currentDepth = length(fragToLight);
-
-		float bias = 0.05; 
-		float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;
-		result += shadow;
-	}
+	vec3 fragToLight = view - lightsources[lightindex].position;
 	
-	return result;
+	float currentDepth = length(fragToLight);
+
+	fragToLight = inverse(mat3(transpose(inverse(cam.worldToCamera)))) * fragToLight;
+
+	float shadow = 0.0;
+
+	for(int j = 0; j < samples; ++j)
+	{
+		float closestDepth = texture(depthCubemap[lightindex], fragToLight + sampleOffsetDirections[j] * offset).r;
+
+		closestDepth *= setting.shadowfar_plane;
+				
+		shadow += (currentDepth -  setting.shadowbias) > closestDepth ? 1.0 : 0.0;
+	}
+
+	return shadow / float(samples);	
 }
 
 vec3 computePointLight(vec3 surfacePos, vec3 normal, vec3 lightPos, lightData lightsource)
@@ -164,11 +173,15 @@ vec3 ComputePBR(vec3 view, vec3 norm, float metal, float roughness, vec3 albedo)
 		vec3 lightDir = normalize(lightsource.position - view);
 		vec3 normDir = normalize(norm);
 
-		result += ComputeBRDF(viewDir, lightDir, normDir, metal, roughness, albedo);
+		float offset = (1.0 + (length(view) / setting.shadowfar_plane)) / setting.shaodwdiskRadius;
+
+		float shadow = computeShadow(view, offset, i);
+
+		result += (1 - shadow) * ComputeBRDF(viewDir, lightDir, normDir, metal, roughness, albedo);
 	}
 
 	//ambient
-	result += albedo * 0.2;
+	//result += (albedo) * 0.08;
 
 	//light color
 	//result *= vec3(1.0, 1.0, 1.0) / (dis * dis);

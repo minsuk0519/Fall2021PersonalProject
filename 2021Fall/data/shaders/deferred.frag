@@ -52,5 +52,5 @@ void main()
 		outColor = vec4(computeLight(pos, norm), 1.0);
 	}
 
-	outColor = vec4(vec3(1.0 - computeShadow(pos)), 1.0);
+	//outColor = vec4(vec3(1.0 - computeShadow(pos)), 1.0);
 }

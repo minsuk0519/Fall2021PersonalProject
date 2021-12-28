@@ -11,6 +11,7 @@
 #include "Engine/Entity/Light.hpp"
 #include "Engine/Entity/Object.hpp"
 #include "Engine/Graphic/Descriptor.hpp"
+#include "Engine/Level/LevelManager.hpp"
 
 //standard library
 #include <stdexcept>
@@ -29,7 +30,7 @@
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-#define INSTANCE_COUNT 65
+#define INSTANCE_COUNT 1
 
 Graphic::Graphic(VkDevice device, Application* app) : System(device, app, "Graphic") {}
 
@@ -269,21 +270,7 @@ void Graphic::init()
         }
     }
 
-    //allocate command buffer
-    {
-        vulkanCommandBuffers.resize(CMD_INDEX::CMD_POST + swapchainImageSize);
-
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = application->GetCommandPool();
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
-
-        if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-    }
+    AllocateCommandBuffer();
 
     DefineDrawBehavior();
 
@@ -501,6 +488,12 @@ void Graphic::drawGUI()
         {
             guiSetting.deferred_type = GUI_ENUM::DEFERRED_LIGHT;
         }
+        if (ImGui::CollapsingHeader("Shadow##SettingGraphic"))
+        {
+            ImGui::DragFloat("ShadowBias", &guiSetting.shadowbias, 0.001f, 0.0f, 10.0f);
+            ImGui::DragFloat("ShadowFarPlane", &guiSetting.shadowfar_plane, 0.01f, 0.01f, 1000.0f);
+            ImGui::DragFloat("ShadowDiskRadius", &guiSetting.shadowdiskRadius, 0.01f, 0.01f, 1000.0f);
+        }
     }
 
     std::array<bool, GUI_ENUM::LIGHT_COMPUTE_MAX> lightcomputationbool = { false };
@@ -514,6 +507,22 @@ void Graphic::drawGUI()
     if (ImGui::Button("Reload Swapchain"))
     {
         application->framebufferSizeUpdate = true;
+    }
+}
+
+void Graphic::AllocateCommandBuffer()
+{
+    vulkanCommandBuffers.resize(CMD_INDEX::CMD_POST + swapchainImageSize);
+
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = application->GetCommandPool();
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = static_cast<uint32_t>(vulkanCommandBuffers.size());
+
+    if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate command buffers!");
     }
 }
 
@@ -789,7 +798,10 @@ void Graphic::RecreateSwapChain()
 
     CloseSwapChain();
     SetupSwapChain();
+    AllocateCommandBuffer();
     DefineDrawBehavior();
+
+    LevelManager::GetCurrentLevel()->postinit();
 }
 
 void Graphic::DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget& target)

@@ -37,7 +37,7 @@ void ObjectManager::postinit()
 		{
 			if (dynamic_cast<Light*>(obj) != nullptr) continue;
 			if (dynamic_cast<Camera*>(obj) != nullptr) continue;
-			graphic->RegisterObject(DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_SHADOWMAP, PROGRAM_ID::PROGRAM_ID_SHADOWMAP, DRAWTARGET_INDEX::DRAWTARGET_CUBE, { index++, i });
+			graphic->RegisterObject(DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_SHADOWMAP, PROGRAM_ID::PROGRAM_ID_SHADOWMAP, obj->drawtargetIndex, { index++, i });
 		}
 
 		graphic->EndRenderPass(CMD_INDEX::CMD_SHADOW);

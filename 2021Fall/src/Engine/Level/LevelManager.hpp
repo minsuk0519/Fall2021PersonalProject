@@ -20,10 +20,12 @@ public:
 	virtual void close() override;
 	virtual void drawGUI() override;
 
+	static Level* GetCurrentLevel();
+
 public:
 	void SetCurrentLevel(Level* level);
 
 private:
-	Level* currentLevel = nullptr;
-	std::vector<Level*> levelList;
+	static Level* currentLevel;
+	static std::vector<Level*> levelList;
 };

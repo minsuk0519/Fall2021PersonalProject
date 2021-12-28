@@ -78,6 +78,10 @@ struct GUISetting
 {
 	GUI_ENUM::DEFERRED_TYPE deferred_type = GUI_ENUM::DEFERRED_LIGHT;
 	GUI_ENUM::LIGHT_COMPUTATION_TYPE computation_type = GUI_ENUM::LIGHT_COMPUTE_PBR;
+
+	float shadowbias = 0.5f;
+	float shadowfar_plane = 100.0f;
+	float shadowdiskRadius = 50.0f;
 };
 
 struct VertexInfo
@@ -171,6 +175,8 @@ private:
 	CMD_INDEX currentCommandIndex;
 
 private:
+	void AllocateCommandBuffer();
+
 	void SetupSwapChain();
 	void DefineDrawBehavior();
 

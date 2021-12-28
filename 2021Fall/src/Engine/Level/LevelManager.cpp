@@ -4,6 +4,9 @@
 //3rd party library
 #include <imgui/imgui.h>
 
+Level* LevelManager::currentLevel = nullptr;
+std::vector<Level*> LevelManager::levelList;
+
 LevelManager::LevelManager(VkDevice device, Application* app) : System(device, app, "Level") {}
 
 void LevelManager::init()
@@ -43,6 +46,11 @@ void LevelManager::drawGUI()
 	{
 		currentLevel->objManager->drawGUI();
 	}
+}
+
+Level* LevelManager::GetCurrentLevel()
+{
+	return currentLevel;
 }
 
 void LevelManager::SetCurrentLevel(Level* level)
