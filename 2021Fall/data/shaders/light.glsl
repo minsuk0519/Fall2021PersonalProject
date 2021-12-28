@@ -186,8 +186,5 @@ vec3 ComputePBR(vec3 view, vec3 norm, float metal, float roughness, vec3 albedo)
 	//light color
 	//result *= vec3(1.0, 1.0, 1.0) / (dis * dis);
 
-	//result = result / (result + vec3(1.0));
-	//result = pow(result, vec3(1.0/2.2)); 
-
 	return result;
 }

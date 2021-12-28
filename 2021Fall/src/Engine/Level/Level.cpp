@@ -67,7 +67,7 @@ void Level::init()
     newobj->GetTransform().SetScale(glm::vec3(2.0f, 2.0f, 2.0f));
     newobj->GetTransform().SetPosition(glm::vec3(-20.0f, 0.0f, 20.0f));
     newobj->SetUniform(ObjectUniform{ glm::mat4(1.0f), glm::vec3(0.662124f, 0.654864f, 0.633732f), 1.0f, 1.0f });
-    newobj->SetDrawBehavior(DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_OBJ, PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL_INSTANCE, UniformBufferIndex::UNIFORM_OBJECT_MATRIX);
+    newobj->SetDrawBehavior(DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_OBJ, PROGRAM_ID::PROGRAM_ID_BASERENDER, DRAWTARGET_INDEX::DRAWTARGET_MODEL, UniformBufferIndex::UNIFORM_OBJECT_MATRIX);
 }
 
 void Level::postinit()
