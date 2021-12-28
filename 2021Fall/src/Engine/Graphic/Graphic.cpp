@@ -150,6 +150,8 @@ void Graphic::init()
         uint32_t instance = VulkanMemoryManager::CreateVertexBuffer(transform_matrices.data(), instance_size);
 
         drawtargets.push_back({ {{vertex, index, static_cast<uint32_t>(indices.size())}}, instance, INSTANCE_COUNT });
+
+        drawtargets.push_back({ {{vertex, index, static_cast<uint32_t>(indices.size())}} });
     }
 
     {

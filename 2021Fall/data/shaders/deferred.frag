@@ -32,7 +32,7 @@ void main()
 	vec4 tex1 = texture(texPosition, fragTexCoord);
 	vec4 tex2 = texture(texNormal, fragTexCoord);
 	vec3 albedo = texture(texAlbedo, fragTexCoord).rgb;
-	//albedo = pow(albedo, vec3(2.2));
+	albedo = pow(albedo, vec3(2.2));
 	vec3 pos = tex1.rgb;
 	float metal = tex1.a;
 	vec3 norm = tex2.rgb;
@@ -43,14 +43,19 @@ void main()
 		discard;
 	}
 
+	vec3 color;
+
 	if(setting.computationType == 0)
 	{
-		outColor = vec4(ComputePBR(pos, norm, metal, roughness, albedo), 1.0);
+		color = ComputePBR(pos, norm, metal, roughness, albedo);
 	}
 	else
 	{
-		outColor = vec4(computeLight(pos, norm), 1.0);
+		color = computeLight(pos, norm);
 	}
 
-	//outColor = vec4(vec3(1.0 - computeShadow(pos)), 1.0);
+	color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2));  
+
+	outColor = vec4(color, 1.0);
 }
