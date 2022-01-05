@@ -181,7 +181,7 @@ vec3 ComputePBR(vec3 view, vec3 norm, float metal, float roughness, vec3 albedo)
 	}
 
 	//ambient
-	//result += (albedo) * 0.08;
+	result += (albedo) * 0.08;
 
 	//light color
 	//result *= vec3(1.0, 1.0, 1.0) / (dis * dis);

@@ -71,6 +71,11 @@ unsigned int Object::getID() const
 	return id;
 }
 
+DRAWTARGET_INDEX Object::getDrawTargetIndex() const
+{
+	return drawtargetIndex;
+}
+
 Object::Object(Level* level, unsigned int objid, std::string objname) : ownerLevel(level), id(objid), name(objname), Interface() {}
 
 void Object::postinit()

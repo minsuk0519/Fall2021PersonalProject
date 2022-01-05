@@ -46,6 +46,8 @@ public:
 	void SetDrawBehavior(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetindex, UniformBufferIndex uniformbufferid);
 	unsigned int getID() const;
 
+	DRAWTARGET_INDEX getDrawTargetIndex() const;
+
 protected:
 	Object(Level* level, unsigned int objid, std::string objname = "");
 

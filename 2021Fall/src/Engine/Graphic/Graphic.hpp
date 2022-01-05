@@ -135,6 +135,10 @@ public:
 
 private:
 	std::vector<VkCommandBuffer> vulkanCommandBuffers;
+	
+	VkQueryPool vulkanTimestampQueryPool;
+	VkQueryPool vulkanPipelineQueryPool;
+
 	std::vector<VkSemaphore> vulkanImageAvailableSemaphores;
 	std::vector<VkSemaphore> vulkanRenderFinishedSemaphores;
 	std::vector<VkFence> inFlightFences;
@@ -177,6 +181,9 @@ private:
 private:
 	void AllocateCommandBuffer();
 
+	void CreateQueryPool();
+	void GetQueryPoolResult();
+
 	void SetupSwapChain();
 	void DefineDrawBehavior();
 
@@ -193,4 +200,6 @@ private:
 	void loadModel(tinyobj::attrib_t& attrib, std::vector<tinyobj::shape_t>& shapes, const std::string& path, const std::string& filename);
 
 	VkSampleCountFlagBits getMaxUsableSampleCount();
+
+	void SetUP();
 };

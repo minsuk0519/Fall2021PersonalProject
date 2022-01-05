@@ -12,6 +12,7 @@
 #include "Engine/Entity/Object.hpp"
 #include "Engine/Graphic/Descriptor.hpp"
 #include "Engine/Level/LevelManager.hpp"
+#include "Engine/Level/ObjectManager.hpp"
 
 //standard library
 #include <stdexcept>
@@ -29,6 +30,7 @@
 #include <tinyobjloader/tiny_obj_loader.h>
 
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+constexpr int TIMESTAMP_MAX_SIZE = 3;
 
 #define INSTANCE_COUNT 1
 
@@ -271,6 +273,7 @@ void Graphic::init()
     }
 
     AllocateCommandBuffer();
+    CreateQueryPool();
 
     DefineDrawBehavior();
 
@@ -300,7 +303,10 @@ void Graphic::init()
     }
 }
 
-void Graphic::postinit() {}
+void Graphic::postinit()
+{
+    SetUP();
+}
 
 void Graphic::update(float dt)
 {
@@ -431,6 +437,8 @@ void Graphic::update(float dt)
     }
      
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    GetQueryPoolResult();
 }
 
 void Graphic::close()
@@ -523,6 +531,32 @@ void Graphic::AllocateCommandBuffer()
     if (vkAllocateCommandBuffers(vulkanDevice, &allocInfo, vulkanCommandBuffers.data()) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to allocate command buffers!");
+    }
+}
+
+void Graphic::CreateQueryPool()
+{
+    VkQueryPoolCreateInfo queryPoolInfo = {};
+    queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+    queryPoolInfo.queryCount = TIMESTAMP_MAX_SIZE;
+
+    if (vkCreateQueryPool(vulkanDevice, &queryPoolInfo, VK_NULL_HANDLE, &vulkanTimestampQueryPool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create query pool");
+    }
+}
+
+void Graphic::GetQueryPoolResult()
+{
+    std::array<uint64_t, TIMESTAMP_MAX_SIZE * 2> timestamps = { 0 };
+    vkGetQueryPoolResults(vulkanDevice, vulkanTimestampQueryPool, 0, TIMESTAMP_MAX_SIZE, sizeof(uint64_t) * 2 * TIMESTAMP_MAX_SIZE, timestamps.data(), 0, VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT);
+
+    uint64_t prev = timestamps[0];
+    for (unsigned int i = 1; i < TIMESTAMP_MAX_SIZE; ++i)
+    {
+        //std::cout << "time " << i << ": " << (timestamps[i * 2] - prev) << std::endl;
+        prev = timestamps[i * 2];
     }
 }
 
@@ -755,6 +789,8 @@ void Graphic::CloseSwapChain()
         delete descriptorset;
     }
 
+    vkDestroyQueryPool(vulkanDevice, vulkanTimestampQueryPool, VK_NULL_HANDLE);
+
     vkFreeCommandBuffers(vulkanDevice, application->GetCommandPool(), static_cast<uint32_t>(vulkanCommandBuffers.size()), vulkanCommandBuffers.data());
     vulkanCommandBuffers.clear();
 
@@ -799,9 +835,10 @@ void Graphic::RecreateSwapChain()
     CloseSwapChain();
     SetupSwapChain();
     AllocateCommandBuffer();
+    CreateQueryPool();
     DefineDrawBehavior();
 
-    LevelManager::GetCurrentLevel()->postinit();
+    SetUP();
 }
 
 void Graphic::DrawDrawtarget(const VkCommandBuffer& cmdBuffer, const DrawTarget& target)
@@ -1031,6 +1068,46 @@ VkSampleCountFlagBits Graphic::getMaxUsableSampleCount()
     if (counts & VK_SAMPLE_COUNT_2_BIT) return VK_SAMPLE_COUNT_2_BIT;
 
     return VK_SAMPLE_COUNT_1_BIT;
+}
+
+void Graphic::SetUP()
+{
+    auto objectList = LevelManager::GetCurrentLevel()->GetObjectManager()->getObjList();
+
+    BeginCmdBuffer(CMD_INDEX::CMD_BASE);
+    vkCmdResetQueryPool(vulkanCommandBuffers[CMD_INDEX::CMD_BASE], vulkanTimestampQueryPool, 0, 2);
+    vkCmdWriteTimestamp(vulkanCommandBuffers[CMD_INDEX::CMD_BASE], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, vulkanTimestampQueryPool, 0);
+    BeginRenderPass(CMD_INDEX::CMD_BASE, RENDERPASS_INDEX::RENDERPASS_PRE);
+
+    for (auto obj : objectList)
+    {
+        obj->postinit();
+    }
+    vkCmdWriteTimestamp(vulkanCommandBuffers[CMD_INDEX::CMD_BASE], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, vulkanTimestampQueryPool, 1);
+
+
+    EndRenderPass(CMD_INDEX::CMD_BASE);
+    EndCmdBuffer(CMD_INDEX::CMD_BASE);
+
+    BeginCmdBuffer(CMD_INDEX::CMD_SHADOW);
+    vkCmdResetQueryPool(vulkanCommandBuffers[CMD_INDEX::CMD_SHADOW], vulkanTimestampQueryPool, 2, 1);
+    for (uint32_t i = 0; i < MAX_LIGHT; ++i)
+    {
+        BeginRenderPass(CMD_INDEX::CMD_SHADOW, RENDERPASS_INDEX::RENDERPASS_DEPTHCUBEMAP, i);
+
+        uint32_t index = 0;
+        for (auto obj : objectList)
+        {
+            if (dynamic_cast<Light*>(obj) != nullptr) continue;
+            if (dynamic_cast<Camera*>(obj) != nullptr) continue;
+
+            RegisterObject(DESCRIPTORSET_INDEX::DESCRIPTORSET_ID_SHADOWMAP, PROGRAM_ID::PROGRAM_ID_SHADOWMAP, obj->getDrawTargetIndex(), { index++, i });
+        }
+
+        EndRenderPass(CMD_INDEX::CMD_SHADOW);
+    }
+    vkCmdWriteTimestamp(vulkanCommandBuffers[CMD_INDEX::CMD_SHADOW], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, vulkanTimestampQueryPool, 2);
+    EndCmdBuffer(CMD_INDEX::CMD_SHADOW);
 }
 
 void Graphic::RegisterObject(DESCRIPTORSET_INDEX descriptorsetid, PROGRAM_ID programid, DRAWTARGET_INDEX drawtargetid)

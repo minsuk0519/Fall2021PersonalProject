@@ -77,6 +77,8 @@ public:
 		return nullptr;
 	}
 
+	std::vector<Object*>& getObjList();
+
 private:
 	std::vector<Object*> objectList;
 	std::vector<Light*> lightList;
